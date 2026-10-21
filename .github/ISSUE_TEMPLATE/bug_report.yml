@@ -1,0 +1,45 @@
+name: Bug report
+description: Something in TabbyDeck does not work as expected.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Add a Volume key
+        2. Press it on the tablet
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: TabbyDeck version
+      description: Shown in Settings.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2
+  - type: input
+    id: device
+    attributes:
+      label: Phone or tablet, and its browser
+      placeholder: Galaxy Tab A8, Chrome 130
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: Anything relevant from the Log page in the editor. Remove anything private first.
+      render: text

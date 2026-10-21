@@ -1,0 +1,22 @@
+{
+  "name": "@tabbydeck/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./tokens.css": "./src/tokens.css"
+  },
+  "scripts": {
+    "prebuild": "node scripts/build-icons.mjs"
+  },
+  "dependencies": {
+    "@tabbydeck/shared": "*",
+    "preact": "11.0.1"
+  },
+  "devDependencies": {
+    "@phosphor-icons/core": "^2.1.1",
+    "preact-render-to-string": "6.8.1"
+  },
+  "license": "Apache-2.0"
+}

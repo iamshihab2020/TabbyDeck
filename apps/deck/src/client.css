@@ -1,0 +1,162 @@
+/* Client styles. Floor is Chrome 60: no flex `gap`, no `inset`, no backdrop-filter, no :is/:where. */
+html, body, #app { height: 100%; overflow: hidden; overscroll-behavior: none; }
+body { touch-action: manipulation; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 0 18px; border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--text); font-weight: 600; font-size: var(--fs-3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: transform var(--dur) var(--ease);
+}
+.btn svg { margin-right: 8px; }
+.btn:active { transform: translateY(1px) scale(0.98); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.14); }
+.icon-btn, .bar-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border: 0; border-radius: var(--radius); background: transparent; color: var(--muted);
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.icon-btn:active, .bar-btn:active { background: var(--surface-2); color: var(--text); }
+
+.live-dot { position: relative; display: inline-block; width: 8px; height: 8px; margin-right: 10px; border-radius: 50%; background: var(--accent); }
+.live-dot::after { content: ''; position: absolute; top: 0; left: 0; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: tb-ping 1.8s var(--ease) infinite; }
+@keyframes tb-ping { 0% { transform: scale(1); opacity: 0.6; } 80%, 100% { transform: scale(2.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .live-dot::after { animation: none; display: none; } }
+
+/* ---- pairing ---- */
+.pair { display: flex; flex-direction: column; height: 100%; padding: 16px 20px; padding-top: calc(16px + env(safe-area-inset-top)); padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  background: radial-gradient(ellipse 70% 50% at 50% 42%, rgba(245, 165, 36, 0.07), rgba(245, 165, 36, 0) 70%), var(--bg); }
+.pair-top { display: flex; align-items: center; justify-content: space-between; }
+.brand { display: inline-flex; align-items: center; font-weight: 700; font-size: var(--fs-4); letter-spacing: -0.01em; }
+.brand-mark { margin-right: 10px; }
+.pair-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.pair-lead { margin: 0 0 22px; color: var(--muted); font-size: var(--fs-4); }
+/* The code is six keys, so the first thing a new device shows is what TabbyDeck is made of. */
+.pair-code { display: flex; justify-content: center; margin: 0 0 28px; font-size: 40px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); white-space: nowrap; }
+.pair-key {
+  display: inline-flex; align-items: center; justify-content: center; width: 1.45em; height: 1.7em; margin: 0 3px; border-radius: 12px;
+  background: var(--surface-2); background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.12));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.045), inset 0 -3px 0 rgba(0, 0, 0, 0.3), 0 2px 0 rgba(0, 0, 0, 0.35);
+  animation: tb-key-drop 420ms var(--ease-spring) backwards;
+}
+.pair-key.gap { margin-right: 16px; }
+@keyframes tb-key-drop { from { transform: translateY(-14px); opacity: 0; } }
+.pair-status { display: inline-flex; align-items: center; margin: 0; color: var(--muted); font-size: var(--fs-3); }
+.pair-foot { width: 100%; max-width: 420px; margin: 0 auto; }
+.field { display: block; }
+.field-label { display: block; margin-bottom: 6px; color: var(--muted); font-size: var(--fs-2); }
+.field input, .input {
+  width: 100%; min-height: 48px; padding: 0 14px; border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); font-size: var(--fs-4);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.field input:focus, .input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+.hint { margin: 12px 0 0; color: var(--faint); font-size: var(--fs-2); text-align: center; }
+@media (max-width: 360px) { .pair-code { font-size: 30px; } .pair-key { margin: 0 2px; border-radius: 9px; } .pair-key.gap { margin-right: 10px; } }
+
+/* ---- deck ---- */
+.deck { display: flex; flex-direction: column; height: 100%; }
+.deck-bar {
+  display: flex; align-items: center; flex: 0 0 auto; height: 44px;
+  padding: 0 4px; margin-top: env(safe-area-inset-top);
+  -webkit-user-select: none; user-select: none;
+}
+/* Equal sides keep the folder path centred: Back on the left, Full screen and Settings on the right. */
+.bar-side { display: flex; flex: none; width: 88px; }
+.bar-side.end { justify-content: flex-end; }
+.crumbs { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: center; color: var(--muted); font-size: var(--fs-3); }
+.crumb + .crumb::before { content: '›'; margin: 0 6px; color: var(--faint); }
+.crumb.current { color: var(--text); font-weight: 600; letter-spacing: -0.005em; }
+.deck-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 8px 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); min-height: 0; }
+/* Opening a folder (or connecting) brings its keys up in a ripple from the top left; the delay comes from Grid. */
+.deck-area .tb-tile { animation: tb-rise 300ms var(--ease) backwards; }
+/* A phone: the keys keep a thumb-sized cell and the page scrolls up and down. */
+.deck-area.scroll { align-items: flex-start; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.deck-area.scroll .tb-grid { flex: none; margin-bottom: 8px; }
+@keyframes tb-rise { from { transform: translateY(10px) scale(0.94); opacity: 0; } }
+.empty { color: var(--muted); font-size: var(--fs-3); text-align: center; max-width: 280px; }
+@media (prefers-reduced-motion: reduce) { .deck-area .tb-tile, .pair-key { animation: none; } }
+
+/* ---- overlays, sheet, toast ---- */
+.overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; padding: 24px; background: var(--bg); z-index: 10; animation: tb-fade var(--dur-slow) var(--ease); }
+.overlay.over-deck { background: rgba(18, 17, 16, 0.86); }
+@keyframes tb-fade { from { opacity: 0; } }
+.overlay-card { display: flex; flex-direction: column; align-items: center; text-align: center; max-width: 320px; animation: tb-up var(--dur-slow) var(--ease); }
+.overlay-icon { color: var(--accent); margin-bottom: 14px; }
+.overlay-title { margin: 0 0 20px; font-size: var(--fs-4); font-weight: 600; }
+
+.sheet-backdrop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.55); display: flex; align-items: flex-end; justify-content: center; z-index: 20; animation: tb-fade var(--dur) var(--ease); }
+.sheet {
+  width: 100%; max-width: 520px; padding: 10px 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  background: var(--surface); border-radius: 22px 22px 0 0; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 -12px 40px rgba(0, 0, 0, 0.4);
+  animation: tb-sheet var(--dur-slow) var(--ease);
+}
+@keyframes tb-sheet { from { transform: translateY(100%); } }
+@keyframes tb-up { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+.sheet-handle { width: 40px; height: 4px; margin: 0 auto 12px; border-radius: 2px; background: var(--surface-3); }
+.sheet-h { margin: 18px 0 10px; font-size: var(--fs-3); font-weight: 600; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; margin: -4px; }
+.chip { margin: 4px; min-height: 40px; padding: 0 16px; border-radius: var(--radius-pill); border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font-size: var(--fs-3); transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease); }
+.chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.sheet-row { display: flex; justify-content: space-between; margin-top: 16px; }
+.sheet-row .btn { flex: 1; }
+.sheet-row .btn + .btn { margin-left: 10px; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+  max-width: 90%; padding: 12px 18px; border-radius: var(--radius-pill); background: var(--surface-3); color: var(--text);
+  font-size: var(--fs-3); z-index: 30; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); animation: tb-toast var(--dur-slow) var(--ease-spring);
+}
+@keyframes tb-toast { from { transform: translate(-50%, 16px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .overlay, .overlay-card, .sheet, .sheet-backdrop, .toast { animation: none; } }
+
+/* Idle dimming: a dark veil over everything; the first touch only lifts it. A page cannot change the real backlight. */
+.dim-veil { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 40; background: #000; opacity: 0.85; animation: tb-dim 1.2s var(--ease); }
+@keyframes tb-dim { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .dim-veil { animation: none; } }
+
+/* Careful keys: a card asks first. It closes by itself after a few seconds. */
+.confirm-backdrop { align-items: center; padding: 20px; }
+.confirm { width: 100%; max-width: 360px; padding: 22px 20px 18px; border-radius: 22px; background: var(--surface); text-align: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 20px 50px rgba(0, 0, 0, 0.5); animation: tb-confirm 260ms var(--ease-spring); }
+@keyframes tb-confirm { from { transform: scale(0.92); opacity: 0; } }
+.confirm-icon { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 16px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -3px 0 rgba(0, 0, 0, 0.28); }
+.confirm-title { margin: 14px 0 6px; font-size: var(--fs-5); font-weight: 700; }
+.confirm-text { margin: 0 0 6px; color: var(--muted); font-size: var(--fs-3); line-height: 1.4; }
+.btn.danger { background: #b91c1c; border-color: #b91c1c; color: #fff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -2px 0 rgba(0, 0, 0, 0.2); }
+@media (prefers-reduced-motion: reduce) { .confirm { animation: none; } }
+
+/* Brightness panel: one row per screen. The slider's fill is a background sized to the level (no ::-webkit fill pseudo). */
+.bright-title { display: flex; align-items: center; margin: 2px 0 6px; font-size: var(--fs-4); font-weight: 700; }
+.bright-title svg { margin-right: 8px; color: var(--accent); }
+.bright-row { margin-top: 12px; padding: 12px 14px 14px; border-radius: 16px; background: var(--surface-2); animation: tb-up var(--dur-slow) var(--ease) both; }
+.bright-row + .bright-row { animation-delay: 50ms; }
+.bright-head { display: flex; align-items: center; color: var(--muted); }
+.bright-name { flex: 1; margin-left: 8px; color: var(--text); font-size: var(--fs-3); font-weight: 600; }
+.bright-pct { font-size: var(--fs-4); font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
+.bright-ctl { display: flex; align-items: center; margin-top: 10px; }
+.bright-step { flex: none; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-3); color: var(--text); }
+.bright-step:active { transform: scale(0.94); }
+.bright-step[disabled] { opacity: 0.35; }
+.bright-range { flex: 1; min-width: 0; margin: 0 12px; height: 10px; border-radius: 5px; -webkit-appearance: none; appearance: none; outline: none;
+  background: var(--surface-3) linear-gradient(var(--accent), var(--accent)) no-repeat; }
+.bright-range::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: #fff; border: 0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45); }
+.bright-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--accent-soft), 0 2px 8px rgba(0, 0, 0, 0.45); }
+
+/* Bluetooth panel: an on/off switch, then one row per paired device. */
+.bt-power { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: 10px; padding: 14px 16px; border: 0; border-radius: 16px; background: var(--surface-2); color: var(--text); font: inherit; font-size: var(--fs-3); font-weight: 700; }
+.bt-power[disabled] { opacity: 0.7; }
+.bt-knob { position: relative; width: 52px; height: 30px; border-radius: 15px; background: var(--border); transition: background var(--dur) var(--ease); }
+.bt-knob::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: transform var(--dur) var(--ease); }
+.bt-power.on .bt-knob { background: #2563eb; }
+.bt-power.on .bt-knob::after { transform: translateX(22px); }
+.bt-row { display: flex; align-items: center; color: var(--muted); }
+.bt-row.on > svg { color: #60a5fa; }
+.bt-text { flex: 1; min-width: 0; margin: 0 12px; }
+.bt-text .bright-name { display: block; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bt-state { display: block; margin-top: 2px; font-size: var(--fs-2); }
+.bt-row .btn { flex: none; }
+@media (prefers-reduced-motion: reduce) { .bt-knob, .bt-knob::after { transition: none; } }
+

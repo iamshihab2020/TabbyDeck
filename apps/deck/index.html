@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#121110">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>TabbyDeck</title>
+  <style>
+    #tb-old { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; padding: 32px; background: #121110; color: #efeae3;
+      font: 17px/1.5 system-ui, Roboto, sans-serif; text-align: center; }
+    #tb-old b { display: block; font-size: 22px; margin: 30vh 0 12px; color: #f5a524; }
+  </style>
+</head>
+<body>
+  <div id="tb-old" role="alert"><b>TabbyDeck</b>This browser is too old for TabbyDeck. Use Chrome 60 or newer.</div>
+  <div id="app"></div>
+  <script>
+    // Runs before the bundle: a browser that cannot run the bundle gets a message instead of a blank page.
+    (function () {
+      var ok = window.Promise && window.WebSocket && window.CSS && CSS.supports && CSS.supports('display', 'flex') &&
+        'PointerEvent' in window && Object.assign && Array.prototype.includes;
+      if (!ok) { document.getElementById('tb-old').style.display = 'block'; window.__TB_OLD = true; }
+    })();
+  </script>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

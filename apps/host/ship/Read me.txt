@@ -1,0 +1,21 @@
+TabbyDeck 0.1.0 - turn a phone or tablet into buttons for your PC
+
+Start
+  1. Double-click tabbydeck.exe. The TabbyDeck window opens and an amber icon appears in the tray.
+  2. If Windows asks whether TabbyDeck may use the network, tick Private networks and click Allow.
+
+Connect your tablet
+  1. Put the tablet on the same Wi-Fi as this PC.
+  2. In TabbyDeck, open Devices. Scan the code with the tablet's camera, or type the address shown
+     (it looks like http://192.168.1.20:8191) into Chrome on the tablet.
+  3. The tablet shows six digits. Type them in the TabbyDeck window and click Allow.
+
+The tablet cannot connect?
+  Double-click "Allow phones to connect.cmd" and click Yes. This opens port 8191 in the Windows
+  firewall, which is needed when your Wi-Fi is set to Public or the first prompt was dismissed.
+
+Good to know
+  - Closing the TabbyDeck window keeps TabbyDeck running in the tray. Right-click the tray icon to quit.
+  - Pause actions in the tray menu stops every button until you turn it back on.
+  - Your decks, images and logs live in %APPDATA%\tabbydeck. Settings > Save backup makes a copy.
+  - Keep the three items in this folder together: tabbydeck.exe, tabbydeck-tray.exe and the koffi folder.

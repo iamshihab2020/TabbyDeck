@@ -1,0 +1,9 @@
+node_modules/
+dist/
+out/
+*.log
+.data/
+apps/host/bin/out/
+docs/PRD.md
+docs/plans/
+docs/spike-results.md

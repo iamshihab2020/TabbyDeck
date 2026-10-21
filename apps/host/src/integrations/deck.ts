@@ -1,0 +1,60 @@
+import type { ActionContext, ActionRegistry } from '../engine/registry.ts';
+import type { Store } from '../store/store.ts';
+
+const device = (ctx: ActionContext) => {
+  if (!ctx.deviceId) throw new Error('This action needs a device; press it from the deck to try it');
+  return ctx.deviceId;
+};
+/** "3" → 3, "true"/"false" → booleans, anything else stays text. */
+const parseValue = (s: string): string | number | boolean => {
+  const t = s.trim();
+  if (t === 'true') return true;
+  if (t === 'false') return false;
+  if (t !== '' && Number.isFinite(Number(t))) return Number(t);
+  return s;
+};
+
+export function registerDeck(registry: ActionRegistry, deps: { store: Store }): void {
+  const { store } = deps;
+  registry.register({
+    id: 'deck.switchProfile', name: 'Switch profile', group: 'Deck',
+    schema: { profile: { type: 'profile', title: 'Profile', required: true } },
+    run: async (p, ctx) => {
+      if (!store.profile(String(p.profile))) throw new Error('That profile no longer exists');
+      ctx.host.switchProfile(device(ctx), String(p.profile));
+    },
+  });
+  registry.register({
+    id: 'deck.openFolder', name: 'Open folder', group: 'Deck',
+    schema: { folder: { type: 'folder', title: 'Folder', required: true } },
+    run: async (p, ctx) => {
+      if (!store.folder(String(p.folder))) throw new Error('That folder no longer exists');
+      ctx.host.openFolder(device(ctx), String(p.folder));
+    },
+  });
+  registry.register({ id: 'deck.back', name: 'Go back', group: 'Deck', schema: {}, run: async (_p, ctx) => ctx.host.openFolder(device(ctx), null) });
+  registry.register({
+    id: 'deck.setVar', name: 'Set variable', group: 'Deck',
+    schema: { variable: { type: 'variable', title: 'Variable', required: true }, value: { type: 'string', title: 'Value', default: '' } },
+    run: async (p, ctx) => ctx.vars.set(String(p.variable), parseValue(String(p.value ?? '')), 'deck'),
+  });
+  registry.register({
+    id: 'deck.incVar', name: 'Add to variable', group: 'Deck',
+    schema: { variable: { type: 'variable', title: 'Variable', required: true }, by: { type: 'number', title: 'Add', default: 1 } },
+    run: async (p, ctx) => {
+      const cur = ctx.vars.get(String(p.variable))?.value;
+      ctx.vars.set(String(p.variable), (typeof cur === 'number' ? cur : 0) + Number(p.by), 'deck');
+    },
+  });
+  registry.register({
+    id: 'deck.toggleVar', name: 'Toggle variable', group: 'Deck',
+    schema: { variable: { type: 'variable', title: 'Variable', required: true } },
+    run: async (p, ctx) => ctx.vars.set(String(p.variable), ctx.vars.get(String(p.variable))?.value !== true, 'deck'),
+  });
+  registry.register({
+    id: 'deck.notify', name: 'Show message on device', group: 'Deck',
+    schema: { text: { type: 'string', title: 'Message', required: true }, vibrate: { type: 'boolean', title: 'Vibrate', default: true } },
+    run: async (p, ctx) => ctx.host.notify(device(ctx), String(p.text), Boolean(p.vibrate)),
+  });
+  registry.register({ id: 'deck.vibrate', name: 'Vibrate device', group: 'Deck', schema: {}, run: async (_p, ctx) => ctx.host.notify(device(ctx), '', true) });
+}

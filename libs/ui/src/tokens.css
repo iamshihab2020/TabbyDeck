@@ -1,0 +1,137 @@
+/* TabbyDeck design tokens. Warm "tabby" charcoal with an amber eye. Dark first.
+   Cheap to render on old phones: no blur, no web fonts; motion is transform and opacity, plus one tile's shadow on press. */
+:root {
+  --bg: #121110;
+  --surface: #1a1816;
+  --surface-2: #221f1c;
+  --surface-3: #2d2925;
+  --text: #efeae3;
+  --muted: #a8a095;
+  --faint: #7a7268;
+  --border: #2e2a26;
+  --accent: #f5a524;
+  --accent-ink: #2a1a00;
+  --accent-soft: rgba(245, 165, 36, 0.14);
+  --accent-glow: rgba(245, 165, 36, 0.55);
+  --ok: #34d399;
+  --warn: #fbbf24;
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.14);
+  --focus: #f5a524;
+
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-card: 16px;
+  --radius-pill: 999px;
+
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 20px; --space-6: 24px; --space-8: 32px;
+
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "Roboto Mono", Consolas, monospace;
+  --fs-1: 12px; --fs-2: 13px; --fs-3: 15px; --fs-4: 17px; --fs-5: 22px; --fs-6: 28px; --fs-code: 56px;
+
+  --dur: 160ms;
+  --dur-slow: 280ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* A small overshoot, for things that land: keys coming back up, the pairing code. */
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.5, 1);
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #eef0f3;
+  --surface-3: #e2e5ea;
+  --text: #17181b;
+  --muted: #5b6068;
+  --faint: #81868e;
+  --border: #dde0e5;
+  --accent: #b86e00;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(184, 110, 0, 0.12);
+  --accent-glow: rgba(214, 135, 10, 0.5);
+  --danger: #c0392b;
+  --danger-soft: rgba(192, 57, 43, 0.1);
+  --focus: #b86e00;
+  color-scheme: light;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur: 0ms; --dur-slow: 0ms; }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); -webkit-font-smoothing: antialiased; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* ---- the TabbyDeck mark: four keys on an amber cap ---- */
+.tb-mark { display: inline-block; vertical-align: middle; flex: none; }
+
+/* ---- deck tiles (shared by client and editor canvas) ----
+   Each tile is a keycap: a lit top rim, a dark lip along the bottom and a short drop shadow.
+   A press sinks it by the lip's height, lights its face and sends a ring of light out from the finger;
+   letting go springs it back up. Keys that show a PC state wear their "on" colours and a status light. */
+.tb-grid { position: relative; margin: 0 auto; }
+.tb-tile {
+  position: absolute;
+  display: block;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  text-align: center;
+  cursor: pointer;
+  user-select: none; -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.075) 0%, rgba(255, 255, 255, 0) 46%, rgba(0, 0, 0, 0.12) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.045),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.26),
+    0 2px 0 rgba(0, 0, 0, 0.32),
+    0 0 0 0 rgba(245, 165, 36, 0);
+  transition: transform 320ms var(--ease-spring), box-shadow 320ms var(--ease), background-color 260ms var(--ease), color 260ms var(--ease);
+  will-change: transform;
+}
+/* The face light: a white wash that comes up while the key is held. */
+.tb-tile::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #fff; opacity: 0; pointer-events: none; transition: opacity 280ms var(--ease); }
+.tb-tile.tb-pressed {
+  transform: translateY(3px) scale(0.985);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.045),
+    inset 0 0 0 rgba(0, 0, 0, 0.26),
+    0 0 0 rgba(0, 0, 0, 0.32),
+    0 0 18px 2px var(--accent-glow);
+  transition-duration: 70ms, 70ms, 260ms, 260ms;
+}
+.tb-tile.tb-pressed::before { opacity: 0.09; transition-duration: 60ms; }
+/* The light ring: starts under the finger, grows past the key's edges and fades. Transform and opacity only. */
+.tb-ripple {
+  position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.16) 45%, rgba(255, 255, 255, 0) 70%);
+  animation: tb-ripple 560ms var(--ease) forwards;
+}
+@keyframes tb-ripple { from { transform: scale(1); opacity: 1; } to { transform: scale(26); opacity: 0; } }
+/* "On": the status light in the corner, lit in the key's text colour. */
+.tb-led { position: absolute; top: 9%; right: 9%; width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 6px 1px currentColor; pointer-events: none; animation: tb-led-on 360ms var(--ease-spring); }
+@keyframes tb-led-on { from { transform: scale(0); opacity: 0; } }
+/* The live level (volume, brightness) in the top corner; a key at its end greys out. */
+.tb-value { position: absolute; top: 7%; left: 9%; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; opacity: .85; pointer-events: none; }
+.tb-tile.tb-disabled { opacity: .42; filter: saturate(.3); cursor: default; }
+/* Buttons centre their content box themselves in Chrome; an inner wrapper does the layout instead. */
+.tb-tile-inner { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; }
+.tb-tile-icon { position: absolute; left: 50%; top: 50%; pointer-events: none; }
+.tb-tile-img { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.tb-tile-label {
+  position: relative; width: 100%;
+  font-weight: 600; line-height: 1.15; letter-spacing: 0.005em;
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.tb-tile-folder-mark { position: absolute; right: 8%; top: 8%; opacity: 0.55; }
+.tb-flash-error { box-shadow: inset 0 0 0 2px var(--danger), 0 0 0 2px rgba(248, 113, 113, 0.35); }
+.tb-flash-ok { box-shadow: inset 0 0 0 2px var(--ok), 0 0 0 2px rgba(52, 211, 153, 0.3); }
+@media (prefers-reduced-motion: reduce) { .tb-tile, .tb-tile.tb-pressed, .tb-tile::before { transition: none; } .tb-ripple, .tb-led { animation: none; } .tb-ripple { display: none; } }

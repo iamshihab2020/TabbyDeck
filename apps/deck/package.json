@@ -1,0 +1,19 @@
+{
+  "name": "@tabbydeck/deck",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "vite build && node ../../scripts/size.mjs dist 100",
+    "dev": "vite"
+  },
+  "dependencies": {
+    "@tabbydeck/shared": "*",
+    "@tabbydeck/ui": "*",
+    "preact": "11.0.1"
+  },
+  "license": "Apache-2.0"
+}

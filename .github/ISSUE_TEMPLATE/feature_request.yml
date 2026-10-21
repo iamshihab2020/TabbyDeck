@@ -1,0 +1,20 @@
+name: Feature request
+description: An idea for something TabbyDeck should do.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What do you want to do
+      description: The task you are trying to get done, and why the current deck does not cover it.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: How you picture it working.
+  - type: textarea
+    id: other
+    attributes:
+      label: Anything else

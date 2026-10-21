@@ -1,0 +1,23 @@
+{
+  "name": "@tabbydeck/editor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "vite build && node ../../scripts/size.mjs dist 300",
+    "dev": "vite"
+  },
+  "dependencies": {
+    "@tabbydeck/shared": "*",
+    "@tabbydeck/ui": "*",
+    "preact": "11.0.1",
+    "qrcode": "1.5.4"
+  },
+  "devDependencies": {
+    "@types/qrcode": "1.5.6"
+  },
+  "license": "Apache-2.0"
+}

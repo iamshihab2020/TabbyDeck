@@ -1,0 +1,21 @@
+TabbyDeck
+Copyright 2026 Sheikh Shihab Hossain (https://github.com/iamshihab2020)
+
+This product was created by Sheikh Shihab Hossain.
+Original project: https://github.com/iamshihab2020/TabbyDeck
+
+If you redistribute TabbyDeck or a work based on it, in source or binary form,
+the Apache License 2.0 (section 4) requires you to keep this NOTICE file, keep
+the copyright and licence notices, and state which files you changed.
+
+"TabbyDeck" and the TabbyDeck logo are names of the original project. The
+licence does not grant permission to use them (section 6). A modified version
+must be published under a different name.
+
+Third-party components:
+- Phosphor Icons (https://phosphoricons.com), MIT licence.
+- Preact (https://preactjs.com), MIT licence.
+- koffi (https://koffi.dev), MIT licence.
+- node-qrcode (https://github.com/soldair/node-qrcode), MIT licence.
+- ws (https://github.com/websockets/ws), MIT licence.
+- zod (https://zod.dev), MIT licence.

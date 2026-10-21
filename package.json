@@ -1,0 +1,35 @@
+{
+  "name": "tabbydeck",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "libs/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @tabbydeck/deck -w @tabbydeck/editor -w @tabbydeck/host",
+    "typecheck": "tsc -p libs/shared && tsc -p libs/ui && tsc -p apps/deck && tsc -p apps/editor && tsc -p apps/host",
+    "test": "vitest run",
+    "dev": "node apps/host/bin/dev.mjs",
+    "package": "npm run build"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@preact/preset-vite": "2.10.6",
+    "@types/node": "24.19.2",
+    "@types/ws": "8.18.2",
+    "esbuild": "0.28.2",
+    "postject": "1.0.0-alpha.6",
+    "rcedit": "4.0.1",
+    "typescript": "7.0.2",
+    "vite": "8.3.4",
+    "vitest": "5.0.5"
+  },
+  "license": "Apache-2.0",
+  "author": "Sheikh Shihab Hossain (https://github.com/iamshihab2020)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iamshihab2020/TabbyDeck.git"
+  },
+  "description": "Turn your phone or tablet into a Stream Deck for Windows."
+}

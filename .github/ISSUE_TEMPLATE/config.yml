@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and help
+    url: https://github.com/iamshihab2020/TabbyDeck/discussions
+    about: Ask how to do something, or share your deck.
+  - name: Report a security problem
+    url: https://github.com/iamshihab2020/TabbyDeck/security/advisories/new
+    about: Please report vulnerabilities privately, not in a public issue.
