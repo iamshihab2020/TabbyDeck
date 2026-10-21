@@ -5,7 +5,6 @@
 **Turn your phone or tablet into a Stream Deck for Windows. Free and open source.**
 
 [![Download](https://img.shields.io/github/v/release/iamshihab2020/TabbyDeck?label=Download&color=f5a524)](https://github.com/iamshihab2020/TabbyDeck/releases/latest)
-[![CI](https://github.com/iamshihab2020/TabbyDeck/actions/workflows/ci.yml/badge.svg)](https://github.com/iamshihab2020/TabbyDeck/actions/workflows/ci.yml)
 [![Licence](https://img.shields.io/badge/licence-Apache%202.0-blue)](LICENSE)
 ![Windows 10 and 11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4)
 ![Android](https://img.shields.io/badge/Android-6%2B-3ddc84)

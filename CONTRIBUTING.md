@@ -42,3 +42,14 @@ Every pull request is reviewed by the maintainer, [@iamshihab2020](https://githu
 ## Licence
 
 By contributing, you agree that your contribution is licensed under the [Apache License 2.0](LICENSE), the same as the rest of the project.
+
+## Releases
+
+The maintainer publishes a release by updating `CHANGELOG.md` and the version in the `package.json` files, then pushing a tag:
+
+```
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+CI tests the tag, builds `tabbydeck.exe`, and publishes the zip on the Releases page.
