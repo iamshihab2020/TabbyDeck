@@ -9,7 +9,7 @@
 ![Windows 10 and 11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4)
 ![Android](https://img.shields.io/badge/Android-6%2B-3ddc84)
 
-![TabbyDeck on a tablet](docs/screens/tablet.png)
+![Tap a key on the tablet and the PC reacts](docs/screens/demo.gif)
 
 </div>
 
