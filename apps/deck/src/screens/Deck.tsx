@@ -4,7 +4,7 @@ import { flowLayout } from '@tabbydeck/shared/layout'; // the subpath keeps zod 
 import { Grid, Icon, gridCellSize } from '@tabbydeck/ui';
 import type { Connection } from '../connection.ts';
 import { createPressTracker } from '../press.ts';
-import { isFullscreen, toggleFullscreen } from '../fullscreen.ts';
+import { fromHomeScreen, isFullscreen, toggleFullscreen } from '../fullscreen.ts';
 import { DIM_CHOICES } from '../idle.ts';
 import { BluetoothPanel, BrightnessPanel, VolumePanel } from './Brightness.tsx';
 
@@ -114,7 +114,7 @@ export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimA
           {view.path.map((p, i) => <span key={p.id} class={i === view.path.length - 1 ? 'crumb current' : 'crumb'}>{i === 0 ? view.profileName : p.name}</span>)}
         </nav>
         <span class="bar-side end">
-          <button type="button" class="bar-btn" aria-label={full ? 'Exit full screen' : 'Full screen'} onClick={toggleFullscreen}><Icon name={full ? 'arrows-in' : 'arrows-out'} size={20} /></button>
+          {!fromHomeScreen() && <button type="button" class="bar-btn" aria-label={full ? 'Exit full screen' : 'Full screen'} onClick={toggleFullscreen}><Icon name={full ? 'arrows-in' : 'arrows-out'} size={20} /></button>}
           <button type="button" class="bar-btn" aria-label="Settings" onClick={() => setSheet(true)}><Icon name="gear-six" size={20} /></button>
         </span>
       </header>
@@ -180,8 +180,12 @@ function Sheet({ view, conn, name, onRename, dimAfter, onDimAfter, onClose }: { 
         <h2 class="sheet-h">This device</h2>
         <input class="input" value={draft} maxLength={40} onInput={e => setDraft((e.target as HTMLInputElement).value)}
           onBlur={() => { const n = draft.trim(); if (n && n !== name) onRename(n); }} />
+        {!fromHomeScreen() && <>
+          <h2 class="sheet-h">Add to your home screen</h2>
+          <p class="hint">In Chrome, tap ⋮ and then Add to Home screen. TabbyDeck then opens full screen from its own icon, and stays paired.</p>
+        </>}
         <div class="sheet-row">
-          <button type="button" class="btn" onClick={toggleFullscreen}><Icon name="arrows-out" size={18} />Fullscreen</button>
+          {!fromHomeScreen() && <button type="button" class="btn" onClick={toggleFullscreen}><Icon name="arrows-out" size={18} />Fullscreen</button>}
           <button type="button" class="btn primary" onClick={onClose}>Done</button>
         </div>
         <p class="hint">Connected to {location.host}</p>

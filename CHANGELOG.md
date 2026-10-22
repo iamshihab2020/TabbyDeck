@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- One button can open several apps together: in Apps on this PC, choose Pick several, tick the apps, then Add button. Edit the list any time in the button's actions.
+- Choose app: every Open app step can pick an installed app from a list, and the steps show the app's name.
+- Add TabbyDeck to your phone's home screen: it opens full screen from its own icon. The deck's settings explain how.
+
 ## 0.1.0 (2026-10-22)
 
 The first release.

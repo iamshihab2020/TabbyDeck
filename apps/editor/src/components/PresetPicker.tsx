@@ -16,14 +16,25 @@ export function presetWidget(p: Preset, x: number, y: number): Omit<Widget, 'id'
 }
 
 export interface App { id: string; name: string }
-export type PresetChoice = Preset | 'blank' | 'folder' | { app: App };
+export type PresetChoice = Preset | 'blank' | 'folder' | { app: App } | { apps: App[] };
 
 /** A button that opens an installed app; image is the uploaded copy of its icon, when it has one. */
 export function appWidget(app: App, image: string | undefined, x: number, y: number): Omit<Widget, 'id' | 'folderId'> {
   return {
     x, y, w: 1, h: 1,
     look: { ...DEFAULT_LOOK, label: app.name, ...(image ? { image, imageFit: 'icon' as const } : { icon: 'app-window' }) },
-    config: { kind: 'button', policy: 'ignore', triggers: { press: [{ id: newId(), action: 'system.launch', params: { path: `shell:AppsFolder\\${app.id}`, args: '' } }] } },
+    config: { kind: 'button', policy: 'ignore', triggers: { press: [launchStep(app)] } },
+  };
+}
+
+const launchStep = (app: App) => ({ id: newId(), action: 'system.launch', params: { path: `shell:AppsFolder\\${app.id}`, args: '' } });
+
+/** One button that opens several apps together, one Launch step each, in the order they were picked. */
+export function appsWidget(apps: App[], x: number, y: number): Omit<Widget, 'id' | 'folderId'> {
+  return {
+    x, y, w: 1, h: 1,
+    look: { ...DEFAULT_LOOK, label: `${apps.length} apps`, icon: 'rocket-launch', bg: '#2b2440', fg: '#c4b5fd' },
+    config: { kind: 'button', policy: 'ignore', triggers: { press: apps.map(launchStep) } },
   };
 }
 
@@ -43,7 +54,7 @@ export function PresetPicker({ danger, onPick, onClose }: { danger: Set<string>;
         <button type="button" role="tab" aria-selected={tab === 'ready'} class={tab === 'ready' ? 'seg on' : 'seg'} onClick={() => setTab('ready')}>Ready-made</button>
         <button type="button" role="tab" aria-selected={tab === 'apps'} class={tab === 'apps' ? 'seg on' : 'seg'} onClick={() => setTab('apps')}>Apps on this PC</button>
       </div>
-      {tab === 'apps' ? <AppList q={q} setQ={setQ} onPick={a => onPick({ app: a })} /> : <>
+      {tab === 'apps' ? <AppList q={q} setQ={setQ} onPick={a => onPick({ app: a })} onPickMany={apps => onPick({ apps })} /> : <>
       <input class="input" placeholder="Search, for example volume or copy" value={q} aria-label="Search ready-made buttons"
         onInput={e => setQ((e.target as HTMLInputElement).value)}
         onKeyDown={e => { if (e.key === 'Enter' && shown[0]) onPick(shown[0]); }} />
@@ -84,23 +95,42 @@ function PresetKey({ p, careful, onPick }: { p: Preset; careful: boolean; onPick
   );
 }
 
-/** Every app in the Start menu, searchable, with its real icon (fetched as each one scrolls into view). */
-function AppList({ q, setQ, onPick }: { q: string; setQ(s: string): void; onPick(a: App): void }) {
+/**
+ * Every app in the Start menu, searchable, with its real icon (fetched as each one scrolls into view). With onPickMany,
+ * "Pick several" turns clicks into ticks, for one button that opens them all.
+ */
+export function AppList({ q, setQ, onPick, onPickMany }: { q: string; setQ(s: string): void; onPick(a: App): void; onPickMany?(apps: App[]): void }) {
   const api = useApi();
   const [apps, setApps] = useState<App[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const [many, setMany] = useState<App[] | null>(null); // the ticked apps, in order, while picking several
+  const click = (a: App) => many ? setMany(m => m!.some(x => x.id === a.id) ? m!.filter(x => x.id !== a.id) : [...m!, a]) : onPick(a);
   useEffect(() => { api.cmd<App[]>('apps.list', {}).then(setApps, () => setFailed(true)); }, []);
   const shown = useMemo(() => { const s = q.trim().toLowerCase(); return (apps ?? []).filter(a => !s || a.name.toLowerCase().includes(s)); }, [apps, q]);
   return (
     <>
       <input class="input" placeholder="Search your apps, for example Slack" value={q} aria-label="Search apps on this PC"
         onInput={e => setQ((e.target as HTMLInputElement).value)}
-        onKeyDown={e => { if (e.key === 'Enter' && shown[0]) onPick(shown[0]); }} />
+        onKeyDown={e => { if (e.key === 'Enter' && shown[0]) click(shown[0]); }} />
+      {onPickMany && (
+        <div class="app-many">
+          {many
+            ? <>
+              <span>{many.length < 2 ? 'Tick the apps to open together.' : `${many.length} apps: ${many.map(a => a.name).join(', ')}`}</span>
+              <button type="button" class="btn small" onClick={() => setMany(null)}>Cancel</button>
+              <button type="button" class="btn small primary" disabled={many.length < 2} onClick={() => onPickMany(many)}>Add button</button>
+            </>
+            : <>
+              <span class="muted">One button can open several apps at once, for example your work apps.</span>
+              <button type="button" class="btn small" onClick={() => setMany([])}><Icon name="rocket-launch" size={14} />Pick several</button>
+            </>}
+        </div>
+      )}
       <div class="preset-list">
         {failed ? <p class="muted preset-empty">Could not read the app list from Windows. Add a blank button and choose the program in the inspector.</p>
           : !apps ? <p class="muted preset-empty">Finding the apps on this PC…</p>
           : !shown.length ? <p class="muted preset-empty">No app matches “{q}”.</p>
-          : <div class="preset-grid app-grid">{shown.map(a => <AppKey key={a.id} app={a} onPick={() => onPick(a)} />)}</div>}
+          : <div class="preset-grid app-grid">{shown.map(a => <AppKey key={a.id} app={a} on={!!many?.some(x => x.id === a.id)} onPick={() => click(a)} />)}</div>}
       </div>
     </>
   );
@@ -115,7 +145,7 @@ function queueIcon(job: () => Promise<void>) {
   pump();
 }
 
-function AppKey({ app, onPick }: { app: App; onPick(): void }) {
+function AppKey({ app, on, onPick }: { app: App; on?: boolean; onPick(): void }) {
   const api = useApi();
   const el = useRef<HTMLButtonElement>(null);
   const [src, setSrc] = useState<string | null | undefined>(undefined);
@@ -131,11 +161,12 @@ function AppKey({ app, onPick }: { app: App; onPick(): void }) {
     return () => { live = false; io.disconnect(); };
   }, [app.id]);
   return (
-    <button ref={el} type="button" class="preset" onClick={onPick} title={app.name}>
+    <button ref={el} type="button" class={on ? 'preset on' : 'preset'} aria-pressed={on} onClick={onPick} title={app.name}>
       <span class="preset-cap app-cap">
         {src ? <img src={src} alt="" width={40} height={40} draggable={false} /> : src === null ? <Icon name="app-window" size={24} /> : <span class="app-wait" />}
       </span>
       <span class="preset-label">{app.name}</span>
+      {on && <Icon name="check-circle" size={18} class="app-tick" />}
     </button>
   );
 }

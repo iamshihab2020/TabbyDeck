@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PRESETS } from '@tabbydeck/shared/presets';
 import { starterProfileFile } from '@tabbydeck/shared';
 import { ICON_NAMES } from '@tabbydeck/ui';
-import { appWidget, presetWidget } from '../src/components/PresetPicker.tsx';
+import { appWidget, appsWidget, presetWidget } from '../src/components/PresetPicker.tsx';
 
 describe('presets in the editor', () => {
   it('every preset and starter-deck icon is in the icon set', () => {
@@ -23,5 +23,16 @@ describe('presets in the editor', () => {
     expect(w.config).toMatchObject({ kind: 'button', triggers: { press: [{ action: 'system.launch', params: { path: 'shell:AppsFolder\\com.tinyspeck.slackdesktop_8yrtsj140pw4g!Slack' } }] } });
     expect(appWidget({ id: 'x', name: 'No icon' }, undefined, 0, 0).look).toMatchObject({ icon: 'app-window' });
   });
+  it('several apps become one button with a Launch step for each, in the order picked', () => {
+    const w = appsWidget([{ id: 'Microsoft.VisualStudioCode', name: 'Visual Studio Code' }, { id: 'com.squirrel.GitHubDesktop.GitHubDesktop', name: 'GitHub Desktop' }, { id: 'Chrome', name: 'Google Chrome' }], 1, 2);
+    expect(w).toMatchObject({ x: 1, y: 2, w: 1, h: 1, look: { label: '3 apps', icon: 'rocket-launch' } });
+    if (w.config.kind !== 'button') throw new Error('not a button');
+    const steps = w.config.triggers.press!;
+    expect(steps.map(s => [s.action, s.params.path])).toEqual([
+      ['system.launch', 'shell:AppsFolder\\Microsoft.VisualStudioCode'],
+      ['system.launch', 'shell:AppsFolder\\com.squirrel.GitHubDesktop.GitHubDesktop'],
+      ['system.launch', 'shell:AppsFolder\\Chrome'],
+    ]);
+    expect(new Set(steps.map(s => s.id)).size).toBe(3);
+  });
 });
-

@@ -7,7 +7,7 @@ import { cellFromPointer, planMove, planResize } from '../canvas/drag.ts';
 import { freeCells, toView } from '../canvas/view.ts';
 import { ContextMenu, type MenuItem } from './ContextMenu.tsx';
 import { toast } from './Toast.tsx';
-import { PresetPicker, appWidget, presetWidget, type PresetChoice } from './PresetPicker.tsx';
+import { PresetPicker, appWidget, appsWidget, presetWidget, type PresetChoice } from './PresetPicker.tsx';
 
 type Clip = Pick<Widget, 'w' | 'h' | 'look' | 'config'>;
 let clipboard: Clip | null = null;
@@ -67,7 +67,8 @@ export function Canvas({ file, folderId, profiles, selected, onSelect, onOpenFol
       const icon = await api.cmd<{ dataUrl: string | null }>('apps.icon', { id: p.app.id }).catch(() => null);
       const saved = icon?.dataUrl ? await api.cmd<{ id: string }>('asset.upload', { name: `${p.app.name}.png`, dataUrl: icon.dataUrl }).catch(() => null) : null;
       widget = appWidget(p.app, saved?.id, at.x, at.y);
-    } else widget = presetWidget(p, at.x, at.y);
+    } else if ('apps' in p) widget = appsWidget(p.apps, at.x, at.y);
+    else widget = presetWidget(p, at.x, at.y);
     const r = await api.cmd<{ id: string }>('widget.create', { folderId, widget }).catch(() => null);
     if (r) onSelect(r.id);
   };

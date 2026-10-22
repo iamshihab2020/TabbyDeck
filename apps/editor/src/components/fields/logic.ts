@@ -42,10 +42,20 @@ export function fieldError(f: ParamField, v: unknown): string | null {
 }
 
 /** One-line description of a step for the list, from its action name and the first meaningful parameter. */
+/**
+ * A readable name from an installed app's id: com.tinyspeck.slackdesktop_8yrtsj140pw4g!Slack -> Slack,
+ * Microsoft.VisualStudioCode -> VisualStudioCode, C:\Apps\FPilot.exe -> FPilot.exe.
+ */
+function appName(path: string): string {
+  const id = path.slice('shell:AppsFolder\\'.length);
+  if (/[\\/]/.test(id)) return id.split(/[\\/]/).pop()!;
+  return id.includes('!') ? id.split('!').pop()! : id.split('.').pop()!;
+}
+
 export function stepSummary(name: string, params: Record<string, unknown>): string {
   const first = Object.values(params).find(v => typeof v === 'string' && v.trim() !== '') as string | undefined
     ?? Object.values(params).find(v => typeof v === 'number') as number | undefined;
   if (first === undefined) return name;
-  const shown = typeof first === 'string' && /[\\/]/.test(first) ? first.split(/[\\/]/).pop()! : String(first);
+  const shown = typeof first === 'string' && /^shell:AppsFolder\\/i.test(first) ? appName(first) : typeof first === 'string' && /[\\/]/.test(first) ? first.split(/[\\/]/).pop()! : String(first);
   return `${name}: ${shown.length > 40 ? shown.slice(0, 39) + '…' : shown}`;
 }

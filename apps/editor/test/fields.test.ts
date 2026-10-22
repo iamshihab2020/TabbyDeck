@@ -49,4 +49,11 @@ describe('stepSummary', () => {
     expect(stepSummary('Lock computer', {})).toBe('Lock computer');
     expect(stepSummary('Open app or file', { path: 'C:/Program Files/App/app.exe' })).toBe('Open app or file: app.exe');
   });
+  it('names installed apps by their app, not their long Windows id', () => {
+    const app = (id: string) => stepSummary('Open app or file', { path: `shell:AppsFolder\\${id}`, args: '' });
+    expect(app('com.tinyspeck.slackdesktop_8yrtsj140pw4g!Slack')).toBe('Open app or file: Slack');
+    expect(app('Microsoft.VisualStudioCode')).toBe('Open app or file: VisualStudioCode');
+    expect(app('Chrome')).toBe('Open app or file: Chrome');
+    expect(app('C:\\Users\\me\\FilePilot\\FPilot.exe')).toBe('Open app or file: FPilot.exe');
+  });
 });

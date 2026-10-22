@@ -3,6 +3,8 @@ import type { ParamSchema, ParamField, Screen } from '@tabbydeck/shared';
 import { Icon } from '@tabbydeck/ui';
 import { useApi, useSnapshot } from '../state.ts';
 import { fieldError, hotkeyFromEvent } from './fields/logic.ts';
+import { Modal } from './Modal.tsx';
+import { AppList } from './PresetPicker.tsx';
 
 /** Form for an action's parameters, generated from its schema. Errors show under each field as you type. */
 export function ParamForm({ schema, params, onChange }: { schema: ParamSchema; params: Record<string, unknown>; onChange(p: Record<string, unknown>): void }) {
@@ -59,9 +61,26 @@ function Field({ f, value, onChange, invalid }: { f: ParamField; value: unknown;
       </select>
     );
     case 'screen': return <ScreenField label={f.title} value={String(value ?? 'all')} onChange={onChange} />;
-    case 'path': return <input aria-label={f.title} class={cls} value={String(value ?? '')} placeholder="notepad.exe, or %LOCALAPPDATA%\Programs\App\app.exe" spellcheck={false} onInput={e => onChange((e.target as HTMLInputElement).value)} />;
+    case 'path': return <PathField label={f.title} value={String(value ?? '')} onChange={onChange} invalid={invalid} />;
     default: return <input aria-label={f.title} class={cls} value={String(value ?? '')} spellcheck={false} onInput={e => onChange((e.target as HTMLInputElement).value)} />;
   }
+}
+
+/** A program or file path, or an installed app chosen from the list (saved as its shell:AppsFolder path). */
+function PathField({ label, value, onChange, invalid }: { label: string; value: string; onChange(v: string): void; invalid: boolean }) {
+  const [choosing, setChoosing] = useState(false);
+  const [q, setQ] = useState('');
+  return (
+    <div class="hotkey">
+      <input aria-label={label} class={invalid ? 'input invalid' : 'input'} value={value} placeholder="Choose an app, or type notepad.exe" spellcheck={false} onInput={e => onChange((e.target as HTMLInputElement).value)} />
+      <button type="button" class="btn small" onClick={() => setChoosing(true)}><Icon name="app-window" size={14} />Choose app</button>
+      {choosing && (
+        <Modal title="Choose an app" onClose={() => setChoosing(false)} width={660}>
+          <AppList q={q} setQ={setQ} onPick={a => { onChange(`shell:AppsFolder\\${a.id}`); setChoosing(false); }} />
+        </Modal>
+      )}
+    </div>
+  );
 }
 
 /** The screens this PC can dim, read when the field opens. A saved screen that is unplugged stays listed so it is not lost. */
