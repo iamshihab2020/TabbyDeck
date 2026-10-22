@@ -45,11 +45,10 @@ By contributing, you agree that your contribution is licensed under the [Apache 
 
 ## Releases
 
-The maintainer publishes a release by updating `CHANGELOG.md` and the version in the `package.json` files, then pushing a tag:
+The maintainer publishes a release from their PC. Raise the version in `package.json`, add a `## <version>` section to `CHANGELOG.md`, commit, quit TabbyDeck, then run:
 
 ```
-git tag v0.2.0
-git push origin v0.2.0
+npm run release
 ```
 
-CI tests the tag, builds `tabbydeck.exe`, and publishes the zip on the Releases page.
+It runs the type check and the tests, builds `tabbydeck.exe`, zips it with LICENSE and NOTICE, tags the version and publishes the release on GitHub.

@@ -57,6 +57,7 @@ npm run dev        # the host with a fake native layer, plus the editor
 npm test           # all tests
 npm run typecheck
 npm run package    # builds out/TabbyDeck/tabbydeck.exe
+npm run release    # maintainer only: test, build and publish a GitHub release
 ```
 
 ```
