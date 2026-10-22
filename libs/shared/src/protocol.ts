@@ -23,7 +23,7 @@ export const ClientMsgSchema = z.discriminatedUnion('t', [
   z.object({
     t: z.literal('volume'), widgetId: z.string(), percent: z.number().min(0).max(100).optional(), mute: z.boolean().optional(),
     /** The level and mute are for this app only (an id from the panel's apps), not the whole PC. */
-    app: z.string().max(64).optional(),
+    app: z.string().max(64).regex(/^[^\u0000-\u001f'"`\u2018-\u201b]+$/, 'not an app name').optional(),
     /** Play through this output from now on (an id from the panel's outputs). */
     output: z.string().max(256).optional(),
   }),

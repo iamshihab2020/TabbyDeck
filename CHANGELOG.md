@@ -43,6 +43,7 @@
 - Phone can't connect? Under the QR code, TabbyDeck says whether any phone has reached the PC, checks the Wi-Fi, the firewall and VPNs on the PC, and lists what to try on the phone (mobile data, VPN or Secure Wi-Fi, Private DNS, guest networks).
 
 ### Fixes
+- Security: text TabbyDeck passes to Windows PowerShell (an app name from the volume mixer, clipboard text) can no longer end its quotes early with a curly quote, and phones cannot send app names with quotes in them.
 - Switch app goes to the app used before, on any screen, instead of sending Alt+Tab (which did not always reach Windows).
 - Mute microphone could fail with an error after the volume panel had been opened.
 

@@ -90,5 +90,9 @@ ${p.script}` : p.script;
   }
 }
 
-/** Quote a string as a PowerShell single-quoted literal. */
-export const psQuote = (s: string) => `'${s.replace(/'/g, "''")}'`;
+/**
+ * Quote a string as a PowerShell single-quoted literal. PowerShell also ends a single-quoted string at the curly
+ * quotes U+2018 to U+201B, so those are doubled too; doubling is how each of them is written inside the literal.
+ * NUL is dropped, since it cannot be passed on PowerShell's input.
+ */
+export const psQuote = (s: string) => `'${s.replace(/\0/g, '').replace(/['\u2018\u2019\u201a\u201b]/g, '$&$&')}'`;

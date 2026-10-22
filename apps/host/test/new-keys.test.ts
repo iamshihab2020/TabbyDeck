@@ -182,3 +182,17 @@ describe('key styles', () => {
     expect((await dispatchCommand('profile.update', { id: f.profile.id, patch: { tiles: 'shiny' } }, { host, log: nullLogger(), onPausedChange: () => {} })).ok).toBe(false);
   });
 });
+
+describe('text passed to PowerShell', () => {
+  it('cannot end its quotes early, with straight or curly quotes', async () => {
+    const { psQuote } = await import('../src/native/win/ps.ts');
+    expect(psQuote("it's")).toBe("'it''s'");
+    expect(psQuote('a\u2019b\u2018c\u201ad\u201be')).toBe("'a\u2019\u2019b\u2018\u2018c\u201a\u201ad\u201b\u201be'");
+    expect(psQuote('x\0y')).toBe("'xy'");
+  });
+  it('a phone cannot send an app name with quotes in it', async () => {
+    const { ClientMsgSchema } = await import('@tabbydeck/shared');
+    expect(ClientMsgSchema.safeParse({ t: 'volume', widgetId: 'w', app: 'chrome', percent: 10 }).success).toBe(true);
+    expect(ClientMsgSchema.safeParse({ t: 'volume', widgetId: 'w', app: "x\u2019; Stop-Computer; \u2019", percent: 10 }).success).toBe(false);
+  });
+});
