@@ -25,11 +25,22 @@ TabbyDeck puts a grid of buttons on any Android phone or tablet on your Wi-Fi. E
 
 Your deck appears on the phone. Windows may warn that the app is from an unknown publisher, because the exe is not signed yet: choose **More info**, then **Run anyway**.
 
+### Add TabbyDeck to your home screen
+
+So it opens like an app, full screen, from its own icon:
+
+1. Open your deck in **Chrome** on the phone or tablet.
+2. Tap the **⋮** menu, then **Add to Home screen**, then **Add**.
+3. Open TabbyDeck from the new icon. It stays paired, so there's no code to type again.
+
+The icon remembers your PC's address. If your router gives the PC a new address, open the new address once and add the icon again. You'll find the same steps in the deck's settings (the gear icon at the top).
+
 ## What it can do
 
 - **Sound and screen:** play, pause, next and previous; a volume slider with mute; mic mute; a brightness slider for each screen, including external monitors; night light.
 - **Bluetooth:** turn it on or off and connect your paired headphones or speakers from the phone.
 - **Your apps:** add any installed app with its real icon, from the list of apps on your PC.
+- **Several apps at once:** one button can open a whole set, for example VS Code, GitHub Desktop, Slack and Chrome for work. In **Apps on this PC**, choose **Pick several**, tick the apps, then **Add button**.
 - **Shortcuts:** any key combination, typing text, mouse clicks and scrolling.
 - **Windows:** Task View, desktop, search, emoji, screenshots and snips, extend or duplicate screens.
 - **Power:** sleep, lock and shut down, with a confirmation first.
