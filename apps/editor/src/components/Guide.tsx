@@ -3,12 +3,20 @@ import { Icon, Mark } from '@tabbydeck/ui';
 import { useApi, useSnapshot } from '../state.ts';
 import { ConnectPanel } from './Connect.tsx';
 import { ApproveModal, type PendingDevice } from './ApproveModal.tsx';
+import { TEMPLATES } from '@tabbydeck/shared/templates';
 
-/** First run: connect a device (or skip), then an optional tour. Ends by saving guideDone, so it shows once. */
+/** First run: connect a device (or skip), pick ready-made decks, then an optional tour. Ends by saving guideDone, so it shows once. */
 export function Guide({ onTour }: { onTour(): void }) {
   const api = useApi();
   const { state } = useSnapshot();
-  const [step, setStep] = useState<'connect' | 'tour'>('connect');
+  const [step, setStep] = useState<'connect' | 'decks' | 'tour'>('connect');
+  const [picked, setPicked] = useState<string[]>([]);
+  const [adding, setAdding] = useState(false);
+  const addDecks = async () => {
+    setAdding(true);
+    for (const id of picked) await api.cmd('profile.template', { id }).catch(() => {});
+    setAdding(false); setStep('tour');
+  };
   const [approving, setApproving] = useState<PendingDevice | null>(null);
   const s = state!;
   const connected = s.devices.find(d => d.approved && !d.blocked);
@@ -20,12 +28,13 @@ export function Guide({ onTour }: { onTour(): void }) {
         <header class="guide-head">
           <Mark size={34} />
           <div>
-            <h1 id="guide-title" class="guide-title">{step === 'connect' ? 'Welcome to TabbyDeck' : connected ? 'You are connected' : 'Take a quick look around'}</h1>
+            <h1 id="guide-title" class="guide-title">{step === 'connect' ? 'Welcome to TabbyDeck' : step === 'decks' ? 'Pick ready-made decks' : connected ? 'You are connected' : 'Take a quick look around'}</h1>
             <p class="muted">Your phone or tablet becomes a deck of buttons for this PC.</p>
           </div>
           <ol class="guide-steps" aria-label="Setup steps">
             <li class={step === 'connect' ? 'on' : 'done'}><span>{step === 'connect' ? '1' : <Icon name="check" size={12} />}</span>Connect a device</li>
-            <li class={step === 'tour' ? 'on' : ''}><span>2</span>Learn the editor</li>
+            <li class={step === 'decks' ? 'on' : step === 'tour' ? 'done' : ''}><span>{step === 'tour' ? <Icon name="check" size={12} /> : '2'}</span>Pick decks</li>
+            <li class={step === 'tour' ? 'on' : ''}><span>3</span>Learn the editor</li>
           </ol>
         </header>
 
@@ -35,7 +44,7 @@ export function Guide({ onTour }: { onTour(): void }) {
             : <>
               <ConnectPanel />
               <ol class="guide-how">
-                <li>On your phone or tablet, scan the code with the camera, or type the address into Chrome.</li>
+                <li>On your phone or tablet, scan the code with the camera, or type the address into Chrome on Android or Safari on iPhone and iPad.</li>
                 <li>It shows a 6-digit code. TabbyDeck asks you for it here.</li>
                 <li>Type the code and choose Allow. That device can now use your deck.</li>
               </ol>
@@ -50,8 +59,24 @@ export function Guide({ onTour }: { onTour(): void }) {
               <p class="muted small">Not connecting? Both devices must be on the same Wi-Fi. If Windows asked about the firewall, allow TabbyDeck, or run “Allow phones to connect” in the TabbyDeck folder.</p>
             </>}
           <div class="modal-actions guide-actions">
-            {!connected && <button type="button" class="btn ghost" onClick={() => setStep('tour')}>Skip for now</button>}
-            <button type="button" class="btn primary" disabled={!connected} onClick={() => setStep('tour')}>Next</button>
+            {!connected && <button type="button" class="btn ghost" onClick={() => setStep('decks')}>Skip for now</button>}
+            <button type="button" class="btn primary" disabled={!connected} onClick={() => setStep('decks')}>Next</button>
+          </div>
+        </> : step === 'decks' ? <>
+          <p class="modal-text">Each one is added as its own profile; swipe the keys on your phone to move between them. Keys for apps this PC does not have stay hidden. You can delete any of them later.</p>
+          <div class="template-list">
+            {TEMPLATES.map(t => {
+              const on = picked.includes(t.id);
+              return (
+                <button key={t.id} type="button" class="template" aria-pressed={on} onClick={() => setPicked(on ? picked.filter(x => x !== t.id) : [...picked, t.id])}>
+                  <Icon name={on ? 'check-circle' : t.icon} size={22} /><span><b>{t.name}</b><span class="muted">{t.description}</span></span>
+                </button>
+              );
+            })}
+          </div>
+          <div class="modal-actions guide-actions">
+            <button type="button" class="btn ghost" onClick={() => setStep('tour')}>Not now</button>
+            <button type="button" class="btn primary" disabled={!picked.length || adding} onClick={addDecks}>{adding ? 'Adding…' : picked.length > 1 ? `Add ${picked.length} decks` : 'Add deck'}</button>
           </div>
         </> : <>
           <p class="modal-text">{connected

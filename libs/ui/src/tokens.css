@@ -85,7 +85,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
   user-select: none; -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.075) 0%, rgba(255, 255, 255, 0) 46%, rgba(0, 0, 0, 0.12) 100%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.11),
     inset 0 0 0 1px rgba(255, 255, 255, 0.045),
@@ -116,15 +115,19 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 @keyframes tb-ripple { from { transform: scale(1); opacity: 1; } to { transform: scale(26); opacity: 0; } }
 /* "On": the status light in the corner, lit in the key's text colour. */
-.tb-led { position: absolute; top: 9%; right: 9%; width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 6px 1px currentColor; pointer-events: none; animation: tb-led-on 360ms var(--ease-spring); }
+.tb-led { position: absolute; z-index: 1; top: 9%; right: 9%; width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 6px 1px currentColor; pointer-events: none; animation: tb-led-on 360ms var(--ease-spring); }
 @keyframes tb-led-on { from { transform: scale(0); opacity: 0; } }
 /* The live level (volume, brightness) in the top corner; a key at its end greys out. */
-.tb-value { position: absolute; top: 7%; left: 9%; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; opacity: .85; pointer-events: none; }
+.tb-value { position: absolute; z-index: 1; top: 7%; left: 9%; right: 22%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; opacity: .85; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45); pointer-events: none; }
 .tb-tile.tb-disabled { opacity: .42; filter: saturate(.3); cursor: default; }
 /* Buttons centre their content box themselves in Chrome; an inner wrapper does the layout instead. */
 .tb-tile-inner { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; }
 .tb-tile-icon { position: absolute; left: 50%; top: 50%; pointer-events: none; }
+/* A live reading (CPU 23%, the time, a countdown) in place of the icon, raised to leave the label room. */
+.tb-big { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -62%); font-weight: 700; line-height: 1; letter-spacing: -0.02em; white-space: nowrap; font-variant-numeric: tabular-nums; pointer-events: none; }
 .tb-tile-img { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+/* A label over a picture (album art) sits on a fade to dark, so it stays readable on a bright cover. */
+.tb-scrim { position: absolute; left: 0; right: 0; bottom: 0; height: 65%; background: linear-gradient(to top, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0)); pointer-events: none; }
 .tb-tile-label {
   position: relative; width: 100%;
   font-weight: 600; line-height: 1.15; letter-spacing: 0.005em;
@@ -134,4 +137,65 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .tb-tile-folder-mark { position: absolute; right: 8%; top: 8%; opacity: 0.55; }
 .tb-flash-error { box-shadow: inset 0 0 0 2px var(--danger), 0 0 0 2px rgba(248, 113, 113, 0.35); }
 .tb-flash-ok { box-shadow: inset 0 0 0 2px var(--ok), 0 0 0 2px rgba(52, 211, 153, 0.3); }
+/* ---- key styles (a profile picks one; keycap above is the default) ----
+   Each is a real kind of button. --key-rgb and --fg-rgb are the key's own colours as "r, g, b", for see-through
+   shades. Shadows stay inside the gap between keys (16 px by default). No background blur: the floor is Chrome 60. */
+.tb-tile { --key-rgb: 37, 34, 31; --fg-rgb: 239, 234, 227; }
+
+/* Sunken: set into the panel, like a dashboard switch. The well's top edge shades it; a press goes deeper. */
+.tiles-sunken .tb-tile {
+  background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.34) 0%, rgba(0, 0, 0, 0.06) 45%, rgba(255, 255, 255, 0.04) 100%);
+  box-shadow: inset 0 5px 10px rgba(0, 0, 0, 0.72), inset 0 1px 2px rgba(0, 0, 0, 0.6), inset 0 -1px 0 rgba(255, 255, 255, 0.1), 0 1px 0 rgba(255, 255, 255, 0.09), 0 -1px 0 rgba(0, 0, 0, 0.5);
+}
+.tiles-sunken .tb-tile.tb-pressed {
+  transform: scale(0.975);
+  box-shadow: inset 0 8px 18px rgba(0, 0, 0, 0.85), inset 0 1px 3px rgba(0, 0, 0, 0.7), inset 0 -1px 0 rgba(255, 255, 255, 0.05), 0 1px 0 rgba(255, 255, 255, 0.07), 0 -1px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* Soft: soft-touch rubber lit from the top left (neumorphism). Out of the surface at rest, pressed into it. */
+.tiles-soft .tb-tile {
+  background-image: linear-gradient(145deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.02) 50%, rgba(0, 0, 0, 0.22) 100%);
+  box-shadow: -6px -6px 14px rgba(255, 255, 255, 0.08), 8px 9px 18px rgba(0, 0, 0, 0.75), inset 1px 1px 0 rgba(255, 255, 255, 0.09), inset -1px -1px 0 rgba(0, 0, 0, 0.3);
+}
+.tiles-soft .tb-tile.tb-pressed {
+  transform: scale(0.98);
+  background-image: linear-gradient(145deg, rgba(0, 0, 0, 0.24) 0%, rgba(255, 255, 255, 0.06) 100%);
+  box-shadow: -1px -1px 3px rgba(255, 255, 255, 0.04), 1px 2px 4px rgba(0, 0, 0, 0.4), inset 5px 6px 12px rgba(0, 0, 0, 0.65), inset -4px -4px 10px rgba(255, 255, 255, 0.07);
+}
+
+/* Glass: tinted acrylic. The key's colour, see-through, with a bright top edge and its colour pooling at the
+   bottom; two soft lights behind the grid give it something to show through. */
+.tiles-glass::before {
+  content: ''; position: absolute; z-index: 0; left: 8%; right: 8%; top: 10%; bottom: 10%; pointer-events: none;
+  background: radial-gradient(closest-side at 28% 35%, rgba(245, 165, 36, 0.32), rgba(245, 165, 36, 0)), radial-gradient(closest-side at 74% 68%, rgba(124, 92, 255, 0.3), rgba(124, 92, 255, 0));
+  filter: blur(30px);
+}
+.tiles-glass .tb-tile {
+  background-color: rgba(var(--key-rgb), 0.34) !important;
+  background-image: linear-gradient(165deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 38%, rgba(255, 255, 255, 0) 60%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.38), inset 0 0 0 1px rgba(255, 255, 255, 0.13), inset 0 -14px 22px -8px rgba(var(--fg-rgb), 0.22), 0 10px 22px -6px rgba(0, 0, 0, 0.5);
+}
+.tiles-glass .tb-tile.tb-pressed {
+  transform: scale(0.97);
+  background-color: rgba(var(--key-rgb), 0.5) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 0 0 1px rgba(var(--fg-rgb), 0.45), inset 0 -18px 26px -8px rgba(var(--fg-rgb), 0.38), 0 4px 12px -4px rgba(0, 0, 0, 0.5);
+}
+
+/* Pad: a drum-machine pad. Matte, with a strip of backlight in the key's text colour; a press lights it all. */
+.tiles-pad .tb-tile {
+  background-image: radial-gradient(ellipse 80% 55% at 50% 118%, rgba(var(--fg-rgb), 0.3), rgba(var(--fg-rgb), 0));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 -2px 0 rgba(var(--fg-rgb), 0.6), 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+.tiles-pad .tb-tile.tb-pressed {
+  transform: scale(0.97);
+  background-image: radial-gradient(ellipse 110% 90% at 50% 100%, rgba(var(--fg-rgb), 0.55), rgba(var(--fg-rgb), 0.08));
+  box-shadow: inset 0 0 0 1px rgba(var(--fg-rgb), 0.55), inset 0 -2px 0 rgba(var(--fg-rgb), 0.9), 0 0 22px 2px rgba(var(--fg-rgb), 0.35);
+}
+.tiles-pad .tb-tile.tb-pressed::before, .tiles-sunken .tb-tile.tb-pressed::before, .tiles-soft .tb-tile.tb-pressed::before { opacity: 0; } /* these go in, not light up */
+
+/* Outline: clear keys drawn with a line in the key's text colour, for busy decks. */
+.tiles-outline .tb-tile { background-color: rgba(var(--key-rgb), 0.16) !important; box-shadow: inset 0 0 0 1.5px rgba(var(--fg-rgb), 0.36); }
+.tiles-outline .tb-tile.tb-pressed { transform: scale(0.97); background-color: rgba(var(--fg-rgb), 0.14) !important; box-shadow: inset 0 0 0 2px rgba(var(--fg-rgb), 0.85); }
+.tiles-outline .tb-tile.tb-pressed::before { opacity: 0; }
+
 @media (prefers-reduced-motion: reduce) { .tb-tile, .tb-tile.tb-pressed, .tb-tile::before { transition: none; } .tb-ripple, .tb-led { animation: none; } .tb-ripple { display: none; } }

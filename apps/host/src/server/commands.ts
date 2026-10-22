@@ -1,9 +1,10 @@
 import { spawn } from 'node:child_process';
 import { z } from 'zod';
-import { IdSchema, SettingsSchema, StepSchema, type EditorCommandName } from '@tabbydeck/shared';
+import { IdSchema, SettingsSchema, StepSchema, TILE_STYLES, type EditorCommandName } from '@tabbydeck/shared';
 import { StoreError } from '../store/store.ts';
 import { AssetError } from '../assets/store.ts';
 import { exportAll, importAll } from '../store/exportImport.ts';
+import { TEMPLATES, templateProfileFile, type TemplateApp } from '@tabbydeck/shared/templates';
 import type { Host } from '../host.ts';
 import type { Logger } from '../log/logger.ts';
 
@@ -19,7 +20,8 @@ export interface CommandContext { host: Host; log: Logger; onPausedChange(): voi
 
 const Name = z.string().trim().min(1).max(40);
 const Rect = { x: z.number().int(), y: z.number().int(), w: z.number().int().min(1), h: z.number().int().min(1) };
-const ProfilePatch = z.object({ name: Name.optional(), cols: z.number().int().optional(), rows: z.number().int().optional(), gap: z.number().optional(), bg: z.string().optional(), bgImage: z.string().optional() }).strict();
+const ProfilePatch = z.object({ name: Name.optional(), cols: z.number().int().optional(), rows: z.number().int().optional(), gap: z.number().optional(), bg: z.string().optional(), bgImage: z.string().optional(), tiles: z.enum(TILE_STYLES).optional(),
+  apps: z.array(z.string().trim().toLowerCase().regex(/^[^\\/:*?"<>|]{1,60}\.exe$/, 'a program file such as code.exe')).max(50).optional() }).strict();
 
 // One zod schema per command: arguments from the editor are untrusted until parsed.
 const ARGS = {
@@ -41,7 +43,7 @@ const ARGS = {
   'device.block': z.object({ id: IdSchema }),
   'device.unblock': z.object({ id: IdSchema }),
   'device.forget': z.object({ id: IdSchema }),
-  'device.update': z.object({ id: IdSchema, name: Name.optional(), profileId: IdSchema.nullable().optional() }),
+  'device.update': z.object({ id: IdSchema, name: Name.optional(), profileId: IdSchema.nullable().optional(), followApps: z.boolean().optional() }),
   'asset.upload': z.object({ name: z.string().max(200), dataUrl: z.string().max(2_000_000) }),
   'asset.delete': z.object({ id: z.string().max(64) }),
   'action.test': z.object({ step: StepSchema }),
@@ -54,6 +56,10 @@ const ARGS = {
   'display.screens': z.unknown(),
   'apps.list': z.unknown(),
   'apps.icon': z.object({ id: z.string().min(1).max(512) }),
+  'windows.list': z.unknown(),
+  'audio.outputs': z.unknown(),
+  'profile.template': z.object({ id: z.string().max(32) }),
+  'network.check': z.unknown(),
 } as const;
 
 type Args<K extends keyof typeof ARGS> = z.infer<(typeof ARGS)[K]>;
@@ -90,7 +96,7 @@ const handlers: { [K in keyof typeof ARGS]: (a: Args<K>, ctx: CommandContext) =>
     const d = device(ctx, a.id);
     if (a.profileId && !ctx.host.store.profile(a.profileId)) throw new StoreError('not_found', 'profile');
     const { profileId: _old, ...rest } = d;
-    ctx.host.store.upsertDevice({ ...rest, ...(a.name ? { name: a.name } : {}), ...(a.profileId === null ? {} : { profileId: a.profileId ?? d.profileId }) });
+    ctx.host.store.upsertDevice({ ...rest, ...(a.name ? { name: a.name } : {}), ...(a.profileId === null ? {} : { profileId: a.profileId ?? d.profileId }), ...(a.followApps === undefined ? {} : { followApps: a.followApps }) });
     if (a.profileId) ctx.host.clients.switchProfile(a.id, a.profileId);
   },
   'asset.upload': (a, { host }) => host.assets.save(a.name, a.dataUrl),
@@ -115,6 +121,38 @@ const handlers: { [K in keyof typeof ARGS]: (a: Args<K>, ctx: CommandContext) =>
   'editor.openDataDir': (_a, { host }) => { spawn('explorer.exe', [host.store.dir], { detached: true, stdio: 'ignore' }).unref(); },
   'host.pause': (a, ctx) => { ctx.host.engine.paused = a.paused; ctx.onPausedChange(); },
   'display.screens': (_a, { host }) => host.native.display.screens(),
+  // The app windows open now, one per program, for choosing apps by name instead of typing code.exe.
+  'windows.list': (_a, { host }) => {
+    const seen = new Set<string>();
+    return host.native.system.windows().filter(w => w.exe && !/^tabbydeck/.test(w.exe) && !seen.has(w.exe) && seen.add(w.exe));
+  },
+  'audio.outputs': (_a, { host }) => host.native.audio.outputs(),
+  // What could stop phones connecting, from this PC's side, and whether any phone has reached it. Reads only.
+  'network.check': async (_a, { host }) => ({
+    ...(await host.native.system.networkCheck(process.execPath).catch(() => ({ network: '', category: '', firewall: 'unknown' as const, vpn: [] }))),
+    lastVisit: host.lastVisit, port: host.lanPort,
+  }),
+  // A ready-made deck as a new profile. Its app keys open the app found by name in the Start menu, with its icon; an
+  // app not on this PC keeps its usual id (the key shows once it is installed), or is left out when it has none.
+  'profile.template': async (a, { host }) => {
+    const t = TEMPLATES.find(x => x.id === a.id);
+    if (!t) throw new StoreError('not_found', 'template');
+    const list = await host.native.system.listApps().catch(() => []);
+    const byName = new Map(list.map(x => [x.name.toLowerCase(), x.id])), here = new Set(list.map(x => x.id.toLowerCase()));
+    const found = new Map<TemplateApp, { path: string; image?: string; here: boolean }>();
+    for (const k of t.rows.flat()) {
+      if (!k?.app) continue;
+      const id = k.app.names.map(n => byName.get(n.toLowerCase())).find(Boolean) ?? k.app.id;
+      if (!id) continue;
+      const png = here.has(id.toLowerCase()) ? await host.native.system.appIcon(id, 128).catch(() => null) : null;
+      const image = png ? (await host.assets.save(`${k.label}.png`, `data:image/png;base64,${png.toString('base64')}`)).id : undefined;
+      found.set(k.app, { path: `shell:AppsFolder\\${id}`, here: here.has(id.toLowerCase()), ...(image ? { image } : {}) });
+    }
+    const order = Math.max(-1, ...host.store.profiles().map(f => f.profile.order)) + 1;
+    const f = templateProfileFile(t, app => found.get(app) ?? null, order);
+    host.store.putProfileFile(f);
+    return { id: f.profile.id };
+  },
   'apps.list': async (_a, { host }) => {
     if (!apps || Date.now() - apps.at > 60_000) apps = { at: Date.now(), list: await host.native.system.listApps() };
     return apps.list;

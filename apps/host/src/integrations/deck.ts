@@ -1,5 +1,6 @@
 import type { ActionContext, ActionRegistry } from '../engine/registry.ts';
 import type { Store } from '../store/store.ts';
+import { pause } from './windows.ts';
 
 const device = (ctx: ActionContext) => {
   if (!ctx.deviceId) throw new Error('This action needs a device; press it from the deck to try it');
@@ -31,6 +32,11 @@ export function registerDeck(registry: ActionRegistry, deps: { store: Store }): 
       if (!store.folder(String(p.folder))) throw new Error('That folder no longer exists');
       ctx.host.openFolder(device(ctx), String(p.folder));
     },
+  });
+  registry.register({
+    id: 'deck.wait', name: 'Wait', group: 'Deck', description: 'Pause before the next step, for example while an app opens',
+    schema: { seconds: { type: 'number', title: 'Seconds', default: 1, min: 0.1, max: 60 } },
+    run: (p, ctx) => pause(Number(p.seconds) * 1000, ctx.signal),
   });
   registry.register({ id: 'deck.back', name: 'Go back', group: 'Deck', schema: {}, run: async (_p, ctx) => ctx.host.openFolder(device(ctx), null) });
   registry.register({

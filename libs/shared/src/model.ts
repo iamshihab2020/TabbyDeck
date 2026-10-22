@@ -28,6 +28,10 @@ export const LookSchema = z.object({
 });
 export type Look = z.infer<typeof LookSchema>;
 
+/** How the keys are drawn. Keycap is the default; each is named after a kind of real button. */
+export const TILE_STYLES = ['keycap', 'sunken', 'soft', 'glass', 'pad', 'outline'] as const;
+export type TileStyle = (typeof TILE_STYLES)[number];
+
 export const ProfileSchema = z.object({
   id: IdSchema,
   name: z.string(),
@@ -38,6 +42,10 @@ export const ProfileSchema = z.object({
   bgImage: z.string().optional(),
   rootFolderId: IdSchema,
   order: z.number(),
+  /** Program files (code.exe): following devices switch to this profile while one of these apps is in front. */
+  apps: z.array(z.string().max(64)).max(50).optional(),
+  /** How this profile's keys are drawn; keycap when unset. */
+  tiles: z.enum(TILE_STYLES).optional(),
 });
 export type Profile = z.infer<typeof ProfileSchema>;
 
@@ -90,6 +98,8 @@ export const DeviceSchema = z.object({
   approved: z.boolean(),
   blocked: z.boolean(),
   profileId: IdSchema.optional(),
+  /** Switch profiles with the app in front (profiles list their apps). On unless turned off. */
+  followApps: z.boolean().optional(),
   tokenHash: z.string().optional(),
   lastSeen: z.string(),
   createdAt: z.string(),

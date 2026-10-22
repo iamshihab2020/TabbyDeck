@@ -79,3 +79,17 @@ export function flowLayout<T extends Rect>(widgets: T[], cols: number): { widget
   });
   return { widgets: placed, rows };
 }
+
+/**
+ * How many columns a deck of this many cells needs: as few empty cells as possible, then the shape closest to a
+ * landscape tablet (about 1.6 columns per row). 25 keys -> 5 x 5, 8 -> 4 x 2, 32 -> 8 x 4, 33 -> 7 x 5.
+ */
+export function snugCols(cells: number, min = 3, max = 8): number {
+  if (cells <= min) return Math.max(1, cells);
+  const ideal = Math.sqrt(cells * 1.6), score = (c: number) => (Math.ceil(cells / c) * c - cells) * 10 + Math.abs(c - ideal);
+  // Never taller than wide by more than a row, and never past the 8 rows a deck can have.
+  const ok = (c: number) => Math.ceil(cells / c) <= Math.min(8, c + 1);
+  let best = max;
+  for (let c = min; c <= max; c++) if (ok(c) && score(c) < score(best)) best = c;
+  return best;
+}

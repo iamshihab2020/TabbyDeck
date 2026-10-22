@@ -2,19 +2,22 @@ import { Icon } from '@tabbydeck/ui';
 import { useSnapshot } from '../state.ts';
 
 const ABOUT: Record<string, { icon: string; text: string }> = {
-  Keyboard: { icon: 'keyboard', text: 'Hotkeys, typing text, holding keys down.' },
-  Mouse: { icon: 'mouse', text: 'Move, click and scroll.' },
-  System: { icon: 'desktop', text: 'Open apps, files and links, lock, sleep, screenshots, clipboard.' },
-  Audio: { icon: 'speaker-high', text: 'Volume, mute and microphone.' },
-  Display: { icon: 'sun', text: 'Brightness for each screen, night light, power saver, extend or duplicate screens.' },
+  Keyboard: { icon: 'keyboard', text: 'Hotkeys, typing text, and holding keys down.' },
+  Mouse: { icon: 'mouse', text: 'Move, click and scroll, plus a trackpad and keyboard on the phone.' },
+  System: { icon: 'desktop', text: 'Open apps, files and links, arrange windows, Do not disturb, Bluetooth, lock, sleep, screenshots and the clipboard.' },
+  Audio: { icon: 'speaker-high', text: "Volume, mute and microphone, each app's own volume, and switching between speakers and headphones." },
+  Media: { icon: 'music-notes', text: 'What is playing, with its title, artist and cover, in any music or video app.' },
+  Meetings: { icon: 'video-camera', text: 'Mute, camera, raise hand and leave, in the call you are in: Teams, Zoom, Google Meet, Slack or Discord.' },
+  Display: { icon: 'sun', text: 'Brightness for each screen, night light, power saver, and extend or duplicate screens.' },
+  Info: { icon: 'gauge', text: 'Keys that show CPU, memory, battery or the time, and timers with a Pomodoro.' },
   Deck: { icon: 'squares-four', text: 'Switch profiles, open folders, variables and messages on the device.' },
 };
 
 // Planned integrations with other apps; listed so it is clear what TabbyDeck cannot do yet.
 const LATER: { name: string; icon: string; text: string }[] = [
   { name: 'OBS Studio', icon: 'record', text: 'Switch scenes, start and stop recording or streaming, mute sources.' },
-  { name: 'Spotify', icon: 'spotify-logo', text: 'Play a playlist, like a song, show what is playing on the key.' },
-  { name: 'Discord', icon: 'discord-logo', text: 'Mute, deafen and push to talk in voice calls.' },
+  { name: 'Spotify', icon: 'spotify-logo', text: 'Play a playlist and like a song (what is playing already shows, from the Media keys).' },
+  { name: 'Discord', icon: 'discord-logo', text: 'Deafen and push to talk (mute works now, from the Meetings keys).' },
   { name: 'Home Assistant', icon: 'house', text: 'Lights, plugs and scenes in your home.' },
 ];
 
@@ -33,7 +36,9 @@ export function IntegrationsPage() {
             <div>
               <h2>{g}</h2>
               <p class="muted">{ABOUT[g]?.text}</p>
-              <span class="int-count">{state!.catalogue.filter(a => a.group === g).length} actions</span>
+              <ul class="int-actions" aria-label={`${g} actions`}>
+                {state!.catalogue.filter(a => a.group === g).map(a => <li key={a.id}>{a.name}</li>)}
+              </ul>
             </div>
           </div>
         ))}

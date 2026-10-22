@@ -23,6 +23,7 @@ export function createApi(opts: { url: string; WebSocket?: typeof WebSocket }): 
   let seq = 0;
   let closed = false;
   let retry: ReturnType<typeof setTimeout> | undefined;
+  let hostStart: number | undefined;
 
   const set = (p: Partial<ApiSnapshot>) => { snap = { ...snap, ...p }; for (const f of subs) f(snap); };
   const fail = (e: string) => { for (const f of errorSubs) f(e); };
@@ -34,7 +35,12 @@ export function createApi(opts: { url: string; WebSocket?: typeof WebSocket }): 
     sock.onmessage = (e: MessageEvent | { data: string }) => {
       let m: HostToEditorMsg;
       try { m = JSON.parse(String(e.data)); } catch { return; }
-      if (m.t === 'state') set({ state: m.state });
+      if (m.t === 'state') {
+        // TabbyDeck restarted (perhaps updated): load the page again so the editor matches it.
+        if (hostStart !== undefined && m.state.startedAt !== undefined && m.state.startedAt !== hostStart && typeof location !== 'undefined') return location.reload();
+        hostStart ??= m.state.startedAt;
+        set({ state: m.state });
+      }
       else if (m.t === 'result') {
         const p = pending.get(m.id); if (!p) return;
         pending.delete(m.id);

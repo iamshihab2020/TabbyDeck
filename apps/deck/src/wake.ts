@@ -30,10 +30,13 @@ export function keepAwake(): () => void {
   // The browser drops a wake lock whenever the page is hidden; take a new one when it comes back.
   const onVisible = () => { if (document.visibilityState === 'visible') arm(); else lock = null; };
 
+  // A touch only counts as a gesture that may start playback when the finger lifts (Safari is strict about it).
   document.addEventListener('pointerdown', arm, true);
+  document.addEventListener('pointerup', arm, true);
   document.addEventListener('visibilitychange', onVisible);
   return () => {
     document.removeEventListener('pointerdown', arm, true);
+    document.removeEventListener('pointerup', arm, true);
     document.removeEventListener('visibilitychange', onVisible);
     void lock?.release().catch(() => {});
     if (video) { video.pause(); video.remove(); video = null; }

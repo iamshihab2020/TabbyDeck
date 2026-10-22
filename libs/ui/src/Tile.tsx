@@ -47,7 +47,7 @@ export function Tile(p: TileProps) {
     <button
       type="button"
       class={cls}
-      aria-label={p.widget.value ? `${name}, ${p.widget.value}` : name}
+      aria-label={[name, p.widget.big, p.widget.value].filter(Boolean).join(', ')}
       aria-disabled={p.widget.disabled || undefined}
       data-widget={p.widget.id}
       tabIndex={p.tabIndex}
@@ -62,10 +62,12 @@ export function Tile(p: TileProps) {
       {p.widget.active && <span class="tb-led" />}
       {p.widget.value && <span class="tb-value" style={{ fontSize: `${Math.max(10, Math.round(cellPx * 0.13))}px` }}>{p.widget.value}</span>}
       <span class="tb-tile-inner" style={t.innerStyle}>
-      {look.image && look.imageFit === 'icon'
+      {p.widget.big
+        ? <span class="tb-big" style={{ fontSize: `${Math.round(Math.min(cellPx * 0.32, width / (p.widget.big.length * 0.6)))}px` }}>{p.widget.big}</span>
+        : look.image && look.imageFit === 'icon'
         ? <img class="tb-tile-icon" src={p.assetUrl(look.image)} alt="" draggable={false} style={{ ...t.iconStyle, width: `${Math.round(t.iconPx * APP_ICON)}px`, height: `${Math.round(t.iconPx * APP_ICON)}px` }} />
         : look.image
-        ? <img class="tb-tile-img" src={p.assetUrl(look.image)} alt="" draggable={false} />
+        ? <><img class="tb-tile-img" src={p.assetUrl(look.image)} alt="" draggable={false} />{look.label && <span class="tb-scrim" />}</>
         : (look.icon || p.widget.kind === 'folder') && <Icon class="tb-tile-icon" name={look.icon ?? 'folder'} size={t.iconPx} style={t.iconStyle} />}
       {p.widget.kind === 'folder' && look.icon && <Icon class="tb-tile-folder-mark" name="folder" size={Math.max(10, Math.round(cellPx * 0.14))} />}
       {look.label && <span class="tb-tile-label" style={t.labelStyle}>{look.label}</span>}

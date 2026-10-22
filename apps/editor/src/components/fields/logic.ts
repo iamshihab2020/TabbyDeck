@@ -1,4 +1,4 @@
-import type { ParamField } from '@tabbydeck/shared';
+import type { ParamField, ParamSchema } from '@tabbydeck/shared';
 import { parseHotkey } from '@tabbydeck/shared/keys';
 
 type KeyLike = { code: string; ctrlKey: boolean; altKey: boolean; shiftKey: boolean; metaKey: boolean };
@@ -52,9 +52,14 @@ function appName(path: string): string {
   return id.includes('!') ? id.split('!').pop()! : id.split('.').pop()!;
 }
 
-export function stepSummary(name: string, params: Record<string, unknown>): string {
-  const first = Object.values(params).find(v => typeof v === 'string' && v.trim() !== '') as string | undefined
-    ?? Object.values(params).find(v => typeof v === 'number') as number | undefined;
+export function stepSummary(name: string, params: Record<string, unknown>, schema: ParamSchema = {}): string {
+  // Choices show their label (Microsoft Teams, not teams); a sound output's id is a long Windows string, so it is left out.
+  const values = Object.entries(params).filter(([k]) => schema[k]?.type !== 'audioOutput').map(([k, v]) => {
+    const f = schema[k];
+    return f?.type === 'enum' && f.labels && typeof v === 'string' ? f.labels[(f.options ?? []).indexOf(v)] ?? v : v;
+  });
+  const first = values.find(v => typeof v === 'string' && v.trim() !== '') as string | undefined
+    ?? values.find(v => typeof v === 'number') as number | undefined;
   if (first === undefined) return name;
   const shown = typeof first === 'string' && /^shell:AppsFolder\\/i.test(first) ? appName(first) : typeof first === 'string' && /[\\/]/.test(first) ? first.split(/[\\/]/).pop()! : String(first);
   return `${name}: ${shown.length > 40 ? shown.slice(0, 39) + '…' : shown}`;

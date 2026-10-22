@@ -29,7 +29,7 @@ describe('presets', () => {
     }
   });
   it('every step names a real action with valid parameters', () => {
-    for (const p of PRESETS) for (const s of p.steps) {
+    for (const p of PRESETS) for (const s of [...p.steps, ...(p.long ?? [])]) {
       const def = host.registry.get(s.action);
       expect(def, `${p.id}: ${s.action}`).toBeDefined();
       const r = validateParams(def!.schema, s.params ?? {});

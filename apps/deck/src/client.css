@@ -1,6 +1,9 @@
 /* Client styles. Floor is Chrome 60: no flex `gap`, no `inset`, no backdrop-filter, no :is/:where. */
 html, body, #app { height: 100%; overflow: hidden; overscroll-behavior: none; }
-body { touch-action: manipulation; }
+body { touch-action: manipulation; -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+/* Safari: holding a key would select its label or open the magnifier and the callout menu. */
+body { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+input { -webkit-user-select: text; user-select: text; }
 
 .btn {
   display: inline-flex; align-items: center; justify-content: center;
@@ -68,13 +71,20 @@ body { touch-action: manipulation; }
 .crumbs { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: center; color: var(--muted); font-size: var(--fs-3); }
 .crumb + .crumb::before { content: '›'; margin: 0 6px; color: var(--faint); }
 .crumb.current { color: var(--text); font-weight: 600; letter-spacing: -0.005em; }
-.deck-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 8px 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); min-height: 0; }
+/* Sideways moves belong to the deck (swiping profiles), not to the browser's back gesture. */
+.deck-area { touch-action: pan-y; flex: 1; display: flex; align-items: center; justify-content: center; padding: 8px 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); min-height: 0; }
 /* Opening a folder (or connecting) brings its keys up in a ripple from the top left; the delay comes from Grid. */
 .deck-area .tb-tile { animation: tb-rise 300ms var(--ease) backwards; }
 /* A phone: the keys keep a thumb-sized cell and the page scrolls up and down. */
 .deck-area.scroll { align-items: flex-start; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 .deck-area.scroll .tb-grid { flex: none; margin-bottom: 8px; }
-@keyframes tb-rise { from { transform: translateY(10px) scale(0.94); opacity: 0; } }
+@keyframes tb-rise { from { transform: translate(var(--rise-x, 0px), var(--rise-y, 10px)) scale(0.94); opacity: 0; } }
+/* A swipe to another profile: its keys slide in from the side the finger came from. */
+.deck-area.from-right { --rise-x: 56px; --rise-y: 0px; }
+.deck-area.from-left { --rise-x: -56px; --rise-y: 0px; }
+.dots { margin-left: 8px; }
+.dots i { display: inline-block; width: 6px; height: 6px; margin: 0 2px; border-radius: 3px; background: var(--faint); vertical-align: middle; transition: width 200ms var(--ease), background 200ms; }
+.dots i.on { width: 14px; background: var(--text); }
 .empty { color: var(--muted); font-size: var(--fs-3); text-align: center; max-width: 280px; }
 @media (prefers-reduced-motion: reduce) { .deck-area .tb-tile, .pair-key { animation: none; } }
 
@@ -88,7 +98,7 @@ body { touch-action: manipulation; }
 
 .sheet-backdrop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.55); display: flex; align-items: flex-end; justify-content: center; z-index: 20; animation: tb-fade var(--dur) var(--ease); }
 .sheet {
-  width: 100%; max-width: 520px; padding: 10px 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  width: 100%; max-width: 520px; max-height: 92vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 10px 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom));
   background: var(--surface); border-radius: 22px 22px 0 0; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 -12px 40px rgba(0, 0, 0, 0.4);
   animation: tb-sheet var(--dur-slow) var(--ease);
 }
@@ -140,6 +150,9 @@ body { touch-action: manipulation; }
 .bright-step { flex: none; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-3); color: var(--text); }
 .bright-step:active { transform: scale(0.94); }
 .bright-step[disabled] { opacity: 0.35; }
+.bright-mute { flex: none; width: 40px; height: 36px; margin: -6px -6px -6px 10px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; border: 0; background: transparent; color: var(--muted); }
+.bright-mute.on { background: #7f1d1d; color: #fecaca; }
+.bright-row.muted .bright-pct { opacity: 0.45; }
 .bright-range { flex: 1; min-width: 0; margin: 0 12px; height: 10px; border-radius: 5px; -webkit-appearance: none; appearance: none; outline: none;
   background: var(--surface-3) linear-gradient(var(--accent), var(--accent)) no-repeat; }
 .bright-range::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: #fff; border: 0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45); }
@@ -160,3 +173,15 @@ body { touch-action: manipulation; }
 .bt-row .btn { flex: none; }
 @media (prefers-reduced-motion: reduce) { .bt-knob, .bt-knob::after { transition: none; } }
 
+
+/* Trackpad: a big touch surface, two buttons for holding (dragging), and a box that types on the PC. */
+.pad { position: relative; height: 46vh; min-height: 200px; margin-top: 8px; border-radius: 20px; background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--border); touch-action: none; -webkit-user-select: none; user-select: none; }
+.pad-hint { position: absolute; left: 0; right: 0; bottom: 14px; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: var(--fs-2); pointer-events: none; }
+.pad-hint svg { margin-right: 6px; }
+.pad-buttons { display: flex; margin-top: 10px; }
+.pad-btn { flex: 1; height: 52px; border: 0; border-radius: 14px; background: var(--surface-3); color: var(--text); font: inherit; font-weight: 600; touch-action: none; }
+.pad-btn + .pad-btn { margin-left: 10px; }
+.pad-btn:active { background: var(--accent-soft); }
+.pad-type { display: flex; margin-top: 12px; }
+.pad-type .input { flex: 1; min-width: 0; margin: 0 10px 0 0; }

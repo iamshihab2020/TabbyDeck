@@ -10,7 +10,8 @@ import { dispatchCommand } from './commands.ts';
 import { assetRoute } from '../assets/store.ts';
 import { connectUrls, listLanInterfaces, sortInterfaces } from './net.ts';
 
-export const VERSION = '0.1.0';
+export const VERSION = '0.2.0';
+const STARTED = Date.now();
 
 export interface EditorServer { port: number; token: string; url: string; close(): Promise<void> }
 
@@ -35,6 +36,8 @@ function buildState(host: Host, log: Logger): EditorState {
     log: log.tail(200),
     version: VERSION,
     paused: host.engine.paused,
+    missing: host.installed.missingIds(),
+    startedAt: STARTED,
   };
 }
 
@@ -93,6 +96,7 @@ export async function startEditorServer(host: Host, opts: { port: number; log: L
   on(host.pairing as never, 'request', ((r: { deviceId: string; name: string; ip: string }) => { broadcast({ t: 'event', kind: 'pairRequest', data: { deviceId: r.deviceId, name: r.name, ip: r.ip } }); pushState(); }) as never);
   for (const e of ['deviceConnected', 'deviceDisconnected'] as const) on(host.clients as never, e, ((d: unknown) => { broadcast({ t: 'event', kind: e, data: d }); pushState(); }) as never);
   on(host.engine as never, 'pauseChange', pushState);
+  on(host.installed as never, 'change', pushState);
   on(host.engine as never, 'actionError', ((d: unknown) => broadcast({ t: 'event', kind: 'actionError', data: d })) as never);
   offs.push(opts.log.on(line => broadcast({ t: 'event', kind: 'log', data: line })));
 

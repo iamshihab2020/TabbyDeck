@@ -10,9 +10,16 @@ export const STATEFUL: Record<string, Partial<Look>> = {
   'display.nightLight': { bg: '#b45309', fg: '#fff7ed' },
   'system.energySaver': { bg: '#166534', fg: '#dcfce7' },
   'system.bluetooth': { bg: '#1d4ed8', fg: '#eff6ff' },
+  'system.dnd': { label: 'Notifications off', icon: 'bell-slash', bg: '#5b21b6', fg: '#ede9fe' },
   'system.bluetoothPanel': { bg: '#1d4ed8', fg: '#eff6ff' },
   // Play / Pause (the media key) while something plays.
   'media.playPause': { label: 'Pause', icon: 'pause' },
+  // An app is using the camera.
+  'meeting.camera': { bg: '#166534', fg: '#dcfce7' },
+  // This key's output is the one Windows plays through.
+  'audio.output': { bg: '#1d4ed8', fg: '#eff6ff' },
+  // Something is playing (the key shows its title and cover either way).
+  'media.nowPlaying': {},
 };
 
 /** The stateful action a button shows, if any. */
@@ -32,6 +39,7 @@ export function confirmText(w: Pick<Widget, 'config'>): string | undefined {
     if (s.action === 'system.lock') return 'The PC locks. You will need your PIN or password to get back in.';
     if (s.action === 'system.run') return 'This runs a command on the PC.';
     if (s.action === 'system.kill') return 'This force-closes an app on the PC. Unsaved work in it is lost.';
+    if (s.action === 'meeting.leave') return 'This leaves the call.';
   }
   return undefined;
 }
@@ -57,9 +65,10 @@ export function levelView(dir: number, levels: number[]): { value: string; disab
   return { value: lo === hi ? `${lo}%` : `${lo}–${hi}%`, disabled: (dir > 0 && min >= 100) || (dir < 0 && max <= 0) };
 }
 
-const PANELS: Record<string, 'brightness' | 'volume' | 'bluetooth'> = { 'display.brightnessPanel': 'brightness', 'system.volumePanel': 'volume', 'system.bluetoothPanel': 'bluetooth' };
+export type Panel = 'brightness' | 'volume' | 'bluetooth' | 'trackpad';
+const PANELS: Record<string, Panel> = { 'display.brightnessPanel': 'brightness', 'system.volumePanel': 'volume', 'system.bluetoothPanel': 'bluetooth', 'mouse.trackpad': 'trackpad' };
 
-/** Buttons that open a panel on the tablet instead of acting at once: brightness for each screen, the volume, or Bluetooth. */
-export function panelOf(w: Pick<Widget, 'config'>): 'brightness' | 'volume' | 'bluetooth' | undefined {
+/** Buttons that open a panel on the tablet instead of acting at once: brightness for each screen, the volume, Bluetooth, or the trackpad. */
+export function panelOf(w: Pick<Widget, 'config'>): Panel | undefined {
   return w.config.kind === 'button' ? PANELS[w.config.triggers.press?.[0]?.action ?? ''] : undefined;
 }

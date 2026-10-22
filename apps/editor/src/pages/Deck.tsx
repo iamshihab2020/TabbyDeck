@@ -4,6 +4,8 @@ import { useApi, useSnapshot } from '../state.ts';
 import { Tree, type Selection } from '../components/Tree.tsx';
 import { Canvas } from '../components/Canvas.tsx';
 import { Inspector } from '../components/Inspector.tsx';
+import { KeyStyle } from '../components/KeyStyle.tsx';
+import { FollowApps } from '../components/FollowApps.tsx';
 
 const assetUrl = (id: string) => `/assets/u/${encodeURIComponent(id)}`;
 
@@ -48,6 +50,8 @@ export function DeckPage() {
             <span class="times" aria-hidden="true">×</span>
             <Stepper label="Rows" value={p.rows} min={1} max={8} onChange={v => grid({ rows: v })} />
             <Stepper label="Gap" value={p.gap} min={0} max={24} step={2} onChange={v => grid({ gap: v })} />
+            <KeyStyle file={file} />
+            <FollowApps file={file} />
           </div>
         </header>
         <Canvas file={file} folderId={folderId} profiles={profiles} selected={selected} onSelect={setSelected}

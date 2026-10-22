@@ -56,4 +56,9 @@ describe('stepSummary', () => {
     expect(app('Chrome')).toBe('Open app or file: Chrome');
     expect(app('C:\\Users\\me\\FilePilot\\FPilot.exe')).toBe('Open app or file: FPilot.exe');
   });
+  it('shows a choice by its label, and leaves out a sound output\'s Windows id', () => {
+    const meeting = { app: { type: 'enum' as const, title: 'Meeting app', options: ['teams', 'zoom'], labels: ['Microsoft Teams', 'Zoom'] } };
+    expect(stepSummary('Meeting: camera', { app: 'zoom' }, meeting)).toBe('Meeting: camera: Zoom');
+    expect(stepSummary('Switch sound output', { output: '{0.0.0.00000000}.{071a706f}' }, { output: { type: 'audioOutput', title: 'Output' } })).toBe('Switch sound output');
+  });
 });

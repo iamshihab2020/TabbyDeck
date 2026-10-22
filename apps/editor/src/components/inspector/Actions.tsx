@@ -61,7 +61,7 @@ export function Actions({ widget }: { widget: Widget }) {
               <div class="step-head">
                 <button type="button" class="step-title" aria-expanded={open === s.id} onClick={() => setOpen(open === s.id ? null : s.id)}>
                   <span class="step-n" aria-hidden="true">{i + 1}</span>
-                  <span class="step-text">{d ? stepSummary(d.name, s.params) : `Unknown action ${s.action}`}</span>
+                  <span class="step-text">{d ? stepSummary(d.name, s.params, d.schema) : `Unknown action ${s.action}`}</span>
                   {bad && <Icon name="warning-circle" size={16} class="step-warn" />}
                 </button>
                 <button type="button" class="icon-btn tiny" onClick={() => void test(s)} disabled={bad || d?.danger}

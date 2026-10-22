@@ -10,13 +10,24 @@ export const ICON_FRACTION = 0.3;
 
 const JUSTIFY = { top: 'flex-start', center: 'center', bottom: 'flex-end' } as const;
 
+/** "#1e3a5f" or "#fff" -> { [name]: "30, 58, 95" }; nothing for other colour formats. */
+export function rgbVar(name: string, hex: string | undefined): Css {
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex ?? '');
+  if (!m) return {};
+  const h = m[1].length === 3 ? m[1].split('').map(c => c + c).join('') : m[1];
+  return { [name]: [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)).join(', ') };
+}
+
 /** Pure mapping from a Look to inline styles for a tile of the given cell size. */
 export function tileStyle(look: Look, cellPx: number, labelLines = 1): { style: Css; innerStyle: Css; iconStyle: Css; labelStyle: Css; iconPx: number } {
   const k = cellPx / REFERENCE_CELL;
   const iconPx = Math.round(cellPx * ICON_FRACTION * look.iconScale);
   const labelBelowIcon = look.labelPos === 'bottom' && look.label;
   const style: Css = {
-    background: look.bg,
+    // A colour, not the background shorthand, so a key style can lay its own light and shading over it; the rgb parts
+    // let a style use the key's colours see-through (glass, outline) on browsers without color-mix.
+    backgroundColor: look.bg,
+    ...rgbVar('--key-rgb', look.bg), ...rgbVar('--fg-rgb', look.fg),
     color: look.fg,
     borderRadius: `${look.radius}px`,
     justifyContent: JUSTIFY[look.labelPos],

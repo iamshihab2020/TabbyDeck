@@ -15,10 +15,9 @@ namespace Tabby {
   interface IMMDevice { int Activate(ref Guid id, int ctx, IntPtr p, [MarshalAs(UnmanagedType.IUnknown)] out object o); }
   [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
   interface IMMDeviceEnumerator { int NotImpl1(); int GetDefaultAudioEndpoint(int flow, int role, out IMMDevice d); }
-  [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] class MMDeviceEnumerator {}
   public static class Audio {
     static IAudioEndpointVolume Ep(int flow) {
-      var e = (IMMDeviceEnumerator)(new MMDeviceEnumerator()); IMMDevice d;
+      var e = (IMMDeviceEnumerator)Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("BCDE0395-E52F-467C-8E3D-C4579291692E"))); IMMDevice d;
       Marshal.ThrowExceptionForHR(e.GetDefaultAudioEndpoint(flow, 1, out d));
       var iid = typeof(IAudioEndpointVolume).GUID; object o;
       Marshal.ThrowExceptionForHR(d.Activate(ref iid, 23, IntPtr.Zero, out o));

@@ -16,7 +16,7 @@ export interface GridProps {
 export function Grid({ view, cell, assetUrl, tileProps, children }: GridProps) {
   const { cols, rows, gap } = view;
   return (
-    <div class="tb-grid" style={{ width: `${cellSpan(cols, cell.w, gap)}px`, height: `${cellSpan(rows, cell.h, gap)}px` }}>
+    <div class={`tb-grid tiles-${view.tiles ?? 'keycap'}`} style={{ width: `${cellSpan(cols, cell.w, gap)}px`, height: `${cellSpan(rows, cell.h, gap)}px` }}>
       {view.widgets.map(w => (
         <Tile key={w.id} widget={w} cell={cell} assetUrl={assetUrl} {...tileProps?.(w)}
           style={{ left: `${cellOffset(w.x, cell.w, gap)}px`, top: `${cellOffset(w.y, cell.h, gap)}px`, width: `${cellSpan(w.w, cell.w, gap)}px`, height: `${cellSpan(w.h, cell.h, gap)}px`,

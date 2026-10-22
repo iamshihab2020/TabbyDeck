@@ -13,7 +13,7 @@ export default defineConfig({
   base: './',
   build: {
     target: 'es2017',
-    cssTarget: 'chrome60',
+    cssTarget: ['chrome60', 'safari13'], // iOS 13 is the Safari floor (pointer events); it still wants -webkit- prefixes
     outDir: 'dist',
     emptyOutDir: true,
     modulePreload: false,

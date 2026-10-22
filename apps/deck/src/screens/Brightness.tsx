@@ -1,17 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
-import type { Bluetooth, Screen } from '@tabbydeck/shared';
+import type { AppSound, AudioOutput, Bluetooth, Screen } from '@tabbydeck/shared';
 import { Icon } from '@tabbydeck/ui';
 
 const SEND_EVERY_MS = 120; // while a slider is dragged
 const HOLD_MS = 1500;      // after a touch, the slider keeps the finger's value over the PC's (slower) report
 
-interface Row { id: string; name: string; icon: string; level: number }
+interface Row {
+  id: string; name: string; icon: string; level: number;
+  /** A small heading above this row, starting a group (the apps under the PC's volume). */
+  head?: string;
+  /** The row has its own mute button. */
+  mute?: { on: boolean; set(on: boolean): void };
+}
 
 /** A sheet of sliders, one per row, each with − / + for exact steps. Brightness and volume both use it. */
-function LevelPanel({ title, icon, rows, step, empty, onSet, onClose, children }: {
+function LevelPanel({ title, icon, rows, step, empty, onSet, onClose, children, extra }: {
   title: string; icon: string; rows?: Row[]; step: number; empty: string;
   onSet(id: string, percent: number): void; onClose(): void; children?: ComponentChildren;
+  /** Shown under the rows, above the buttons. */
+  extra?: ComponentChildren;
 }) {
   const [mine, setMine] = useState<Record<string, { v: number; at: number }>>({});
   const timers = useRef<Record<string, { last: number; t?: ReturnType<typeof setTimeout> }>>({});
@@ -41,12 +49,16 @@ function LevelPanel({ title, icon, rows, step, empty, onSet, onClose, children }
           : !rows.length ? <p class="hint">{empty}</p>
           : rows.map(r => {
             const v = level(r);
-            return (
-              <div key={r.id} class="bright-row">
+            return [
+              r.head && <h2 key={`h-${r.id}`} class="sheet-h">{r.head}</h2>,
+              <div key={r.id} class={r.mute?.on ? 'bright-row muted' : 'bright-row'}>
                 <div class="bright-head">
                   <Icon name={r.icon} size={18} />
                   <span class="bright-name">{r.name}</span>
                   <span class="bright-pct">{v}%</span>
+                  {r.mute && <button type="button" class={r.mute.on ? 'bright-mute on' : 'bright-mute'} aria-pressed={r.mute.on} aria-label={`Mute ${r.name}`} onClick={() => r.mute!.set(!r.mute!.on)}>
+                    <Icon name={r.mute.on ? 'speaker-x' : 'speaker-high'} size={18} />
+                  </button>}
                 </div>
                 <div class="bright-ctl">
                   <button type="button" class="bright-step" aria-label={`${r.name} down`} disabled={v <= 0} onClick={() => set(r.id, v - step, true)}><Icon name="minus" size={20} /></button>
@@ -56,9 +68,10 @@ function LevelPanel({ title, icon, rows, step, empty, onSet, onClose, children }
                     onChange={e => set(r.id, Number((e.target as HTMLInputElement).value), true)} />
                   <button type="button" class="bright-step" aria-label={`${r.name} up`} disabled={v >= 100} onClick={() => set(r.id, v + step, true)}><Icon name="plus" size={20} /></button>
                 </div>
-              </div>
-            );
+              </div>,
+            ];
           })}
+        {extra}
         <div class="sheet-row">{children}<button type="button" class="btn primary" onClick={onClose}>Done</button></div>
       </section>
     </div>
@@ -71,11 +84,41 @@ export function BrightnessPanel({ screens, onSet, onClose }: { screens?: Screen[
   return <LevelPanel title="Brightness" icon="sun" rows={rows} step={10} empty="No screen here lets Windows change its brightness." onSet={onSet} onClose={onClose} />;
 }
 
-/** The PC's volume as one slider, with Mute beside Done. */
-export function VolumePanel({ level, muted, onSet, onMute, onClose }: { level?: number; muted?: boolean; onSet(percent: number): void; onMute(on: boolean): void; onClose(): void }) {
-  const rows = level === undefined ? undefined : [{ id: 'volume', name: muted ? 'Volume (muted)' : 'Volume', icon: muted ? 'speaker-x' : 'speaker-high', level }];
+const OUTPUT_HOLD_MS = 4000; // a chosen output shows as chosen until the PC reports it, or for this long
+
+/** "Speakers (Realtek(R) Audio)" -> "Speakers": the driver's name does not fit on a chip. */
+const short = (name: string) => name.replace(/\s+\(.*\)\s*$/, '') || name;
+
+/**
+ * The PC's volume, then each app with sound open (its own slider and mute, as in Windows' volume mixer), then the
+ * outputs to play through. Mute for the whole PC sits beside Done.
+ */
+export function VolumePanel({ level, muted, apps, outputs, onSet, onMute, onApp, onOutput, onClose }: {
+  level?: number; muted?: boolean; apps?: AppSound[]; outputs?: AudioOutput[];
+  onSet(percent: number): void; onMute(on: boolean): void; onApp(id: string, change: { percent?: number; mute?: boolean }): void; onOutput(id: string): void; onClose(): void;
+}) {
+  const [chosen, setChosen] = useState<{ id: string; at: number } | null>(null);
+  const rows: Row[] | undefined = level === undefined ? undefined : [
+    { id: 'volume', name: muted ? 'Volume (muted)' : 'Volume', icon: muted ? 'speaker-x' : 'speaker-high', level },
+    ...(apps ?? []).map((a, i) => ({
+      id: `app:${a.id}`, name: a.name, icon: 'app-window', level: a.level, head: i === 0 ? 'Apps' : undefined,
+      mute: { on: a.muted, set: (on: boolean) => onApp(a.id, { mute: on }) },
+    })),
+  ];
+  const playing = outputs?.find(o => o.isDefault)?.id;
+  const shown = chosen && chosen.id !== playing && Date.now() - chosen.at < OUTPUT_HOLD_MS ? chosen.id : playing;
+  const extra = outputs && outputs.length > 1 && <>
+    <h2 class="sheet-h">Plays through</h2>
+    <div class="chips" role="radiogroup" aria-label="Sound output">
+      {outputs.map(o => (
+        <button key={o.id} type="button" role="radio" aria-checked={o.id === shown} class={o.id === shown ? 'chip on' : 'chip'}
+          onClick={() => { if (o.id !== shown) { setChosen({ id: o.id, at: Date.now() }); onOutput(o.id); } }}>{short(o.name)}</button>
+      ))}
+    </div>
+  </>;
   return (
-    <LevelPanel title="Volume" icon="speaker-high" rows={rows} step={5} empty="" onSet={(_id, v) => onSet(v)} onClose={onClose}>
+    <LevelPanel title="Volume" icon="speaker-high" rows={rows} step={5} empty="" extra={extra}
+      onSet={(id, v) => id === 'volume' ? onSet(v) : onApp(id.slice(4), { percent: v })} onClose={onClose}>
       <button type="button" class={muted ? 'btn danger' : 'btn'} aria-pressed={!!muted} onClick={() => onMute(!muted)}>
         <Icon name={muted ? 'speaker-high' : 'speaker-x'} size={18} />{muted ? 'Unmute' : 'Mute'}
       </button>

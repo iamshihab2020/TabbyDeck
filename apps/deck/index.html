@@ -8,6 +8,9 @@
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TabbyDeck">
   <title>TabbyDeck</title>
   <style>
     #tb-old { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; padding: 32px; background: #121110; color: #efeae3;
@@ -16,7 +19,7 @@
   </style>
 </head>
 <body>
-  <div id="tb-old" role="alert"><b>TabbyDeck</b>This browser is too old for TabbyDeck. Use Chrome 60 or newer.</div>
+  <div id="tb-old" role="alert"><b>TabbyDeck</b>This browser is too old for TabbyDeck. Use Chrome 60 or newer, or Safari on iOS 13 or newer.</div>
   <div id="app"></div>
   <script>
     // Runs before the bundle: a browser that cannot run the bundle gets a message instead of a blank page.

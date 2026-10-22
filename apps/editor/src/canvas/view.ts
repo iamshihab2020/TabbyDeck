@@ -9,7 +9,7 @@ export function toView(f: ProfileFile, folderId: string, profiles: ProfileFile[]
   const p = f.profile;
   return {
     profileId: p.id, profileName: p.name, profiles: profiles.map(x => ({ id: x.profile.id, name: x.profile.name })),
-    folderId, path, cols: p.cols, rows: p.rows, gap: p.gap, bg: p.bg, ...(p.bgImage ? { bgImage: p.bgImage } : {}),
+    folderId, path, cols: p.cols, rows: p.rows, gap: p.gap, bg: p.bg, ...(p.bgImage ? { bgImage: p.bgImage } : {}), ...(p.tiles ? { tiles: p.tiles } : {}),
     widgets: f.widgets.filter(w => w.folderId === folderId).map(w => ({ id: w.id, kind: w.config.kind, x: w.x, y: w.y, w: w.w, h: w.h, look: w.look })),
   };
 }

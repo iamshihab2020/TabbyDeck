@@ -20,8 +20,8 @@ export function startSysInfoPoller(native: Native, vars: VariableApi, connectedC
     if (connectedCount() === 0) return;
     vars.set('system.cpu', native.sysinfo.cpuPercent(), 'system');
     vars.set('system.ram', native.sysinfo.ramPercent(), 'system');
-    const b = native.sysinfo.batteryPercent();
-    if (b !== null) vars.set('system.battery', b, 'system');
+    const b = native.sysinfo.battery();
+    if (b) vars.set('system.battery', b.percent, 'system');
     vars.set('system.activeWindow', native.system.activeWindowTitle(), 'system');
   }, intervalMs);
   t.unref?.();

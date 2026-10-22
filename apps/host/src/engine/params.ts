@@ -6,7 +6,7 @@ let hotkeyValidator: (s: string) => string | null = () => null;
 /** Injected by the keyboard integration so this module does not depend on it. Returns an error message or null. */
 export function setHotkeyValidator(fn: (s: string) => string | null): void { hotkeyValidator = fn; }
 
-const STRINGY = new Set(['string', 'text', 'path', 'profile', 'folder', 'variable', 'hotkey', 'screen']);
+const STRINGY = new Set(['string', 'text', 'path', 'profile', 'folder', 'variable', 'hotkey', 'screen', 'window', 'audioOutput']);
 
 function check(key: string, f: ParamField, v: unknown): string | null {
   if (STRINGY.has(f.type)) {

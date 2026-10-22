@@ -64,6 +64,12 @@ export function DevicesPage() {
                 </select>
               </label>
             )}
+            {!d.blocked && s.profiles.some(p => p.profile.apps?.length) && (
+              <label class="check dev-follow" title="Profiles that list apps open by themselves when one of those apps is in front">
+                <input type="checkbox" checked={d.followApps !== false} onChange={e => void api.cmd('device.update', { id: d.id, followApps: (e.target as HTMLInputElement).checked }).catch(() => {})} />
+                Follow apps
+              </label>
+            )}
             {d.blocked
               ? <button type="button" class="btn" onClick={() => void api.cmd('device.unblock', { id: d.id }).catch(() => {})}>Unblock</button>
               : <button type="button" class="btn" onClick={() => void api.cmd('device.block', { id: d.id }).catch(() => {})}>Block</button>}

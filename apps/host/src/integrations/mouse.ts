@@ -28,6 +28,11 @@ export function registerMouse(registry: ActionRegistry, deps: { input: NativeInp
     schema: { dy: { type: 'number', title: 'Lines (negative scrolls down)', required: true, min: -50, max: 50 }, dx: { type: 'number', title: 'Sideways', default: 0, min: -50, max: 50 } },
     run: async p => input.scroll(Number(p.dy), Number(p.dx)),
   });
+  registry.register({
+    id: 'mouse.trackpad', name: 'Trackpad and keyboard', group: 'Mouse', description: 'Opens a touchpad on the tablet: move the pointer, tap to click, two fingers to scroll or right-click, and a box that types on the PC',
+    schema: {},
+    run: async () => {}, // the tablet opens the panel itself
+  });
   registry.register({ id: 'mouse.hold', name: 'Hold button', group: 'Mouse', schema: { button: BUTTON }, run: async p => input.mouseButton(p.button as MouseButton, true) });
   registry.register({ id: 'mouse.release', name: 'Release button', group: 'Mouse', schema: { button: BUTTON }, run: async p => input.mouseButton(p.button as MouseButton, false) });
 }

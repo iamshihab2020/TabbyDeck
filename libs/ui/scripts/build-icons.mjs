@@ -27,6 +27,7 @@ house house-simple couch bed door door-open thermometer thermometer-hot fan snow
 game-controller joystick trophy sword target crosshair dice-five puzzle-piece rocket rocket-launch ghost alien
 youtube-logo twitch-logo discord-logo spotify-logo github-logo gitlab-logo google-chrome-logo figma-logo slack-logo x-logo facebook-logo instagram-logo linkedin-logo steam-logo windows-logo android-logo apple-logo telegram-logo whatsapp-logo reddit-logo tiktok-logo microsoft-teams-logo microsoft-word-logo microsoft-excel-logo microsoft-powerpoint-logo microsoft-outlook-logo notion-logo trello-logo dropbox-logo google-drive-logo amazon-logo paypal-logo openai-logo
 film-strip film-slate image images image-square scan aperture selection
+briefcase printer number-circle-one number-circle-two number-circle-three number-circle-four text-align-left arrow-bend-down-right
 heart heart-break star thumbs-up thumbs-down smiley smiley-sad smiley-wink confetti gift bell bell-slash bell-ringing megaphone flag bookmark tag
 check checks x plus minus plus-circle minus-circle check-circle x-circle warning-circle warning info prohibit
 eye eye-slash hand arrows-out-cardinal arrows-out arrows-in corners-out corners-in magnifying-glass-plus magnifying-glass-minus crop

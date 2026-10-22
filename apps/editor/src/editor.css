@@ -102,7 +102,7 @@ kbd { font: inherit; font-size: 12px; color: var(--faint); margin-left: auto; }
 .tree-row.on .tree-hit { color: var(--accent); }
 .tree-row.profile { color: var(--text); font-weight: 600; }
 .tree-hit { display: grid; place-items: center; width: 22px; height: 22px; border: 0; background: none; color: inherit; cursor: pointer; padding: 0; }
-.tree-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: default; }
+.tree-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tree-meta { color: var(--faint); font-size: 12px; font-weight: 400; }
 .tree-actions { display: none; }
 .tree-row:hover .tree-actions, .tree-row:focus-within .tree-actions { display: inline-flex; }
@@ -191,7 +191,8 @@ kbd { font: inherit; font-size: 12px; color: var(--faint); margin-left: auto; }
 @keyframes tb-page { from { opacity: 0; transform: translateY(4px); } }
 @media (prefers-reduced-motion: reduce) { .menu, .modal, .modal-backdrop, .toast, .deck-page, .devices-page, .settings-page, .log-page, .simple-page, .rail-btn.on::before { animation: none; } }
 
-.simple-page { padding: 32px 40px; max-width: 760px; }
+.simple-page { padding: 32px 40px 48px; height: 100%; overflow: auto; }
+.simple-page > p { max-width: 720px; }
 .simple-page h1 { font-size: 24px; margin-bottom: 6px; }
 
 /* ---- inspector: preview, tabs, look ---- */
@@ -352,12 +353,13 @@ form .modal-actions { margin-top: 18px; }
 .log-line.debug { opacity: 0.6; }
 .log-data { color: var(--faint); word-break: break-all; }
 .log-empty { margin-top: 24px; }
-.int-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-top: 20px; }
+.int-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); align-items: start; gap: 12px; margin-top: 20px; }
 .int-card { display: flex; gap: 14px; padding: 16px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03); }
 .int-card svg { color: var(--accent); flex: none; margin-top: 2px; }
 .int-card h2 { font-size: 15px; }
 .int-card p { margin: 4px 0 8px; font-size: 13px; }
-.int-count { font-size: 12px; color: var(--faint); }
+.int-actions { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.int-actions li { padding: 2px 8px; border-radius: 999px; background: var(--panel-2, rgba(255, 255, 255, 0.05)); color: var(--muted); font-size: 12px; line-height: 18px; }
 .int-later-h { margin: 32px 0 4px; font-size: 17px; }
 .int-card.later { background: none; border-style: dashed; box-shadow: none; }
 .int-card.later svg { color: var(--faint); }
@@ -435,3 +437,63 @@ form .modal-actions { margin-top: 18px; }
 .app-many > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .preset.on { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px var(--accent); }
 .app-tick { position: absolute; top: 6px; right: 8px; color: var(--accent); }
+
+/* Profiles that follow the app in front */
+.btn.small.on { border-color: var(--accent); color: var(--accent); }
+.follow-list { list-style: none; margin: 12px 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.follow-list li { display: inline-flex; align-items: center; gap: 6px; padding: 2px 2px 2px 10px; border-radius: 999px; background: var(--panel); font-size: 13px; }
+.follow-list .icon-btn { width: 24px; height: 24px; }
+.follow-empty { margin: 12px 0; color: var(--muted); font-size: 13px; }
+.follow-open { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 14px; }
+.dev-follow { margin: 0; white-space: nowrap; }
+.field-stack { display: grid; gap: 6px; }
+
+/* Ready-made decks: one row each, icon, name and what it holds. Also used by the first-run guide (as toggles). */
+.template-list { display: grid; gap: 8px; }
+.template { display: flex; align-items: flex-start; gap: 14px; width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease); }
+.template:hover { border-color: var(--accent); }
+.template:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.template > svg { flex: none; margin-top: 2px; color: var(--accent); }
+.template b { display: block; margin-bottom: 2px; }
+.template .muted { display: block; font-size: 13px; line-height: 1.4; }
+.template[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+/* A key the decks leave out: it opens an app this PC does not have. */
+.canvas-tile.missing .tb-tile { opacity: .4; filter: grayscale(.8); }
+.missing-tag { position: absolute; z-index: 2; left: 4px; right: 4px; bottom: 4px; padding: 2px 4px; border-radius: 6px; background: rgba(0, 0, 0, .7); color: #fff; font-size: 10px; font-weight: 600; text-align: center; pointer-events: none; }
+
+/* A profile dragged over another row: it lands there. */
+.tree-row.profile.drop { box-shadow: inset 0 2px 0 var(--accent); }
+.tree-row { cursor: pointer; }
+
+/* "Phone can't connect?": what this PC checked (green fine, red to fix), then what to try on the phone. */
+.trouble { margin-top: 12px; padding: 12px 16px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
+.trouble summary { cursor: pointer; font-weight: 600; color: var(--text); }
+.trouble h3 { margin: 14px 0 6px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.trouble-lead { margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; background: rgba(248, 113, 113, 0.1); }
+.trouble-lead.ok { background: var(--accent-soft); }
+.trouble-list { margin: 0 0 12px; padding: 0; list-style: none; display: grid; gap: 6px; }
+.trouble-list li { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--muted); }
+.trouble-list li svg { flex: none; margin-top: 2px; }
+.trouble-list li.ok svg { color: #34d399; }
+.trouble-list li.bad svg { color: #f87171; }
+.trouble-list li.bad { color: var(--text); }
+.trouble-list.phone { list-style: disc; padding-left: 18px; display: block; }
+.trouble-list.phone li { display: list-item; margin-top: 4px; }
+
+/* Key style picker: each choice shows three of the profile's own keys drawn that way. */
+.style-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+.style-card { display: flex; flex-direction: column; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: border-color var(--dur) var(--ease); }
+.style-card:hover { border-color: var(--muted); }
+.style-card.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.style-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.style-stage { position: relative; display: block; width: 100%; height: 98px; border-radius: 10px; overflow: hidden; pointer-events: none; }
+.style-text b { display: block; margin-bottom: 2px; }
+.style-text .muted { display: block; font-size: 12.5px; line-height: 1.4; }
+.grid-controls .btn.small { white-space: nowrap; }
+.style-used { align-self: flex-start; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; }
+.theme-target { margin: 18px 0 16px; }
+.themes-page .style-grid { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+.theme-target { display: flex; flex-wrap: wrap; gap: 6px; }
+.theme-target .chip { padding: 6px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
+.theme-target .chip:hover { color: var(--text); }
+.theme-target .chip.on { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }

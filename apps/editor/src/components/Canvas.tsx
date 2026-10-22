@@ -176,7 +176,7 @@ export function Canvas({ file, folderId, profiles, selected, onSelect, onOpenFol
     <div class="stage" onKeyDown={onKey} tabIndex={0} aria-label="Deck canvas. Arrow keys move the selected button." onMouseDown={e => { if (e.target === e.currentTarget) onSelect(null); }}>
       <div class="bezel">
         <div class="screen" ref={screen} style={{ background: view.bg }}>
-          <div class="canvas-grid" ref={gridEl} style={{ width: `${cellSpan(cols, cell.w, gap)}px`, height: `${cellSpan(rows, cell.h, gap)}px` }}>
+          <div class={`canvas-grid tiles-${file.profile.tiles ?? 'keycap'}`} ref={gridEl} style={{ width: `${cellSpan(cols, cell.w, gap)}px`, height: `${cellSpan(rows, cell.h, gap)}px` }}>
             {freeCells(widgets, cols, rows).map(c => (
               <button key={`${c.x},${c.y}`} type="button" class="slot" style={pos({ ...c, w: 1, h: 1 })} aria-label={`Empty cell, column ${c.x + 1}, row ${c.y + 1}. Add a button.`}
                 onClick={() => { onSelect(null); setPicker({ x: c.x, y: c.y }); }} onContextMenu={e => slotMenu(e as unknown as MouseEvent, c.x, c.y)}>
@@ -188,13 +188,16 @@ export function Canvas({ file, folderId, profiles, selected, onSelect, onOpenFol
               const lifted = drag?.id === w.id && drag.moved && drag.mode === 'move';
               // While dragging, the held key follows the pointer and its neighbours slide to where the drop would put them.
               const shift = drag?.moved && drag.mode === 'move' ? drag.plan.find(m => m.id === w.id && m.id !== drag.id) : undefined;
+              const gone = state?.missing?.includes(w.id);
               const at = lifted && drag!.preview ? { ...w, x: drag!.preview.x, y: drag!.preview.y } : shift ? { ...w, ...shift } : w;
               return (
-                <div key={w.id} class={`canvas-tile${w.id === selected ? ' selected' : ''}${lifted ? ' lifted' : ''}${lifted && !drag!.ok ? ' blocked' : ''}`} style={pos(at)}
+                <div key={w.id} class={`canvas-tile${w.id === selected ? ' selected' : ''}${lifted ? ' lifted' : ''}${lifted && !drag!.ok ? ' blocked' : ''}${gone ? ' missing' : ''}`} style={pos(at)}
+                  title={gone ? 'This app is not on this PC, so the decks hide this key' : undefined}
                   onPointerDown={e => startDrag(e as unknown as PointerEvent, w.id, 'move')}
                   onDblClick={() => { if (w.config.kind === 'folder') onOpenFolder(w.config.targetFolderId); }}
                   onContextMenu={e => tileMenu(e as unknown as MouseEvent, w)}>
                   <Tile widget={wv} cell={cell} assetUrl={assetUrl} tabIndex={-1} style={{ left: '0', top: '0', width: '100%', height: '100%' }} />
+                  {gone && <span class="missing-tag">Not on this PC</span>}
                 </div>
               );
             })}

@@ -4,9 +4,11 @@ import { flowLayout } from '@tabbydeck/shared/layout'; // the subpath keeps zod 
 import { Grid, Icon, gridCellSize } from '@tabbydeck/ui';
 import type { Connection } from '../connection.ts';
 import { createPressTracker } from '../press.ts';
-import { fromHomeScreen, isFullscreen, toggleFullscreen } from '../fullscreen.ts';
+import { canFullscreen, fromHomeScreen, isFullscreen, isIOS, toggleFullscreen } from '../fullscreen.ts';
 import { DIM_CHOICES } from '../idle.ts';
 import { BluetoothPanel, BrightnessPanel, VolumePanel } from './Brightness.tsx';
+import { TrackpadPanel } from './Trackpad.tsx';
+import { SWIPE_START, profileAfterSwipe, swipeDir } from '../swipe.ts';
 
 export interface DeckProps {
   view: DeckView;
@@ -72,33 +74,56 @@ export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimA
   const [ask, setAsk] = useState<WidgetView | null>(null); // a careful key waiting for a yes
   const [panel, setPanel] = useState<string | null>(null); // the brightness key whose panel is open
   const panelKey = panel ? view.widgets.find(w => w.id === panel) : undefined;
+  const padSend = useMemo(() => (m: Parameters<Parameters<typeof TrackpadPanel>[0]['onSend']>[0]) => { if (panel) conn.send({ t: 'pointer', widgetId: panel, ...m }); }, [conn, panel]);
   const inFolder = view.path.length > 1;
+  // A swipe can go back or to another profile, so keys wait for the finger to lift (as when scrolling).
+  const swipes = inFolder || view.profiles.length > 1;
+  const lift = scroll || swipes;
+  const [slide, setSlide] = useState(''); // which side the new profile's keys come in from
 
   const send = (widgetId: string, kind: TriggerKind) => conn.send({ t: 'press', widgetId, kind });
-  const trackers = useMemo(() => new Map<string, ReturnType<typeof createPressTracker>>(), [view.folderId, scroll]);
+  const trackers = useMemo(() => new Map<string, ReturnType<typeof createPressTracker>>(), [view.folderId, lift]);
   const tracker = (w: WidgetView) => {
     const id = w.id;
     let t = trackers.get(id);
     if (!t) {
       // Level keys (Volume +) keep going while held: 400 ms, then a step every 150 ms. While scrolling, keys fire on lift.
-      const onPress = () => { if (scroll && navigator.vibrate) navigator.vibrate(10); send(id, 'press'); };
+      const onPress = () => { if (lift && navigator.vibrate) navigator.vibrate(10); send(id, 'press'); };
       t = createPressTracker({ onPress, onLong: () => send(id, 'long'), onDouble: () => send(id, 'double'), onRelease: () => send(id, 'release') },
-        { ...(w.repeat ? { longMs: 400, doubleMs: 300, repeatMs: 150 } : { longMs: 500, doubleMs: 300 }), tap: scroll });
+        { ...(w.repeat ? { longMs: 400, doubleMs: 300, repeatMs: 150 } : { longMs: 500, doubleMs: 300 }), tap: lift });
       trackers.set(id, t);
     }
     return t;
   };
   const back = () => conn.send({ t: 'open', folderId: null });
 
-  // swipe right to go back
+  // Swipe the keys: in a folder, right goes back; at the top, left and right go to the next and previous profile.
+  // Only the key area listens, so dragging a slider in the volume or brightness panel never switches.
   useEffect(() => {
-    const el = area.current; if (!el || !inFolder) return;
-    let x0 = 0, y0 = 0;
-    const s = (e: TouchEvent) => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; };
-    const end = (e: TouchEvent) => { const t = e.changedTouches[0]; if (t.clientX - x0 > 80 && Math.abs(t.clientY - y0) < 40) back(); };
-    el.addEventListener('touchstart', s, { passive: true }); el.addEventListener('touchend', end, { passive: true });
-    return () => { el.removeEventListener('touchstart', s); el.removeEventListener('touchend', end); };
-  }, [inFolder, view.folderId]);
+    const el = area.current; if (!el) return;
+    let x0 = 0, y0 = 0, one = false;
+    const s = (e: TouchEvent) => { one = e.touches.length === 1; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; };
+    // A finger that moves is swiping or dragging, not tapping: the key it started on never fires, and no key it
+    // passes over or lifts on fires either (keys only fire for a touch that started and ended on them).
+    const move = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (tap.current && Math.max(Math.abs(t.clientX - x0), Math.abs(t.clientY - y0)) > SWIPE_START) {
+        trackers.get(tap.current)?.cancel(); tap.current = null; setPressed(null);
+      }
+    };
+    const end = (e: TouchEvent) => {
+      if (!one || !swipes) return; one = false;
+      const t = e.changedTouches[0], dir = swipeDir(t.clientX - x0, t.clientY - y0);
+      if (!dir) return;
+      if (inFolder) { if (dir === 1) back(); return; }
+      const to = profileAfterSwipe(view.profiles.map(p => p.id), view.profileId, dir);
+      if (to) { setSlide(dir < 0 ? 'from-right' : 'from-left'); conn.send({ t: 'profile', profileId: to }); }
+    };
+    el.addEventListener('touchstart', s, { passive: true }); el.addEventListener('touchmove', move, { passive: true }); el.addEventListener('touchend', end, { passive: true });
+    return () => { el.removeEventListener('touchstart', s); el.removeEventListener('touchmove', move); el.removeEventListener('touchend', end); };
+  }, [swipes, inFolder, view.folderId, view.profileId, view.profiles, trackers]);
+  // The slide only shapes how the new keys arrive; drop it afterwards so a folder opens with the usual rise.
+  useEffect(() => { if (!slide) return; const t = setTimeout(() => setSlide(''), 1000); return () => clearTimeout(t); }, [slide, view.profileId]);
 
   const bar = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const barDown = () => { bar.current = setTimeout(() => setSheet(true), 600); };
@@ -112,14 +137,15 @@ export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimA
         </span>
         <nav class="crumbs" aria-label="Folder path">
           {view.path.map((p, i) => <span key={p.id} class={i === view.path.length - 1 ? 'crumb current' : 'crumb'}>{i === 0 ? view.profileName : p.name}</span>)}
+          {!inFolder && view.profiles.length > 1 && <span class="dots" aria-hidden="true">{view.profiles.map(p => <i key={p.id} class={p.id === view.profileId ? 'on' : ''} />)}</span>}
         </nav>
         <span class="bar-side end">
-          {!fromHomeScreen() && <button type="button" class="bar-btn" aria-label={full ? 'Exit full screen' : 'Full screen'} onClick={toggleFullscreen}><Icon name={full ? 'arrows-in' : 'arrows-out'} size={20} /></button>}
+          {!fromHomeScreen() && canFullscreen() && <button type="button" class="bar-btn" aria-label={full ? 'Exit full screen' : 'Full screen'} onClick={toggleFullscreen}><Icon name={full ? 'arrows-in' : 'arrows-out'} size={20} /></button>}
           <button type="button" class="bar-btn" aria-label="Settings" onClick={() => setSheet(true)}><Icon name="gear-six" size={20} /></button>
         </span>
       </header>
 
-      <div class={scroll ? 'deck-area scroll' : 'deck-area'} ref={area}>
+      <div class={`deck-area${scroll ? ' scroll' : ''}${slide ? ` ${slide}` : ''}`} ref={area}>
         {view.widgets.length === 0
           ? <p class="empty">Nothing here yet. Add buttons in TabbyDeck on your computer.</p>
           : <Grid view={shown} cell={cell} assetUrl={assetUrl} tileProps={w => ({
@@ -131,13 +157,14 @@ export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimA
                 const el = e.currentTarget as HTMLElement, r = el.getBoundingClientRect();
                 setRipple({ id: w.id, x: e.clientX - r.left, y: e.clientY - r.top, n: (ripple?.n ?? 0) + 1 });
                 setPressed(w.id);
-                if (scroll) { tap.current = w.id; if (!w.panel && !w.confirm) tracker(w).down(); return; } // the browser may still take this touch to scroll
+                if (lift) { tap.current = w.id; if (!w.panel && !w.confirm) tracker(w).down(); return; } // the touch may still turn into a scroll or swipe
                 el.setPointerCapture?.(e.pointerId); if (navigator.vibrate) navigator.vibrate(10);
                 if (w.panel) setPanel(w.id); else if (w.confirm) setAsk(w); else tracker(w).down();
               },
               onPointerUp: () => {
                 setPressed(null);
-                if (scroll && tap.current === w.id && (w.panel || w.confirm)) { tap.current = null; if (w.panel) setPanel(w.id); else setAsk(w); return; }
+                if (lift && tap.current === w.id && (w.panel || w.confirm)) { tap.current = null; if (w.panel) setPanel(w.id); else setAsk(w); return; }
+                if (tap.current && tap.current !== w.id) trackers.get(tap.current)?.cancel(); // lifted on another key
                 tap.current = null; tracker(w).up();
               },
               onPointerCancel: () => { setPressed(null); tap.current = null; tracker(w).cancel(); },
@@ -147,8 +174,12 @@ export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimA
 
       {ask && <Confirm w={ask} onCancel={() => setAsk(null)} onConfirm={() => { send(ask.id, 'press'); send(ask.id, 'release'); setAsk(null); }} />}
       {panelKey?.panel === 'brightness' && <BrightnessPanel screens={panelKey.screens} onSet={(screen, percent) => conn.send({ t: 'brightness', widgetId: panelKey.id, screen, percent })} onClose={() => setPanel(null)} />}
-      {panelKey?.panel === 'volume' && <VolumePanel level={panelKey.level} muted={panelKey.muted} onSet={percent => conn.send({ t: 'volume', widgetId: panelKey.id, percent })} onMute={mute => conn.send({ t: 'volume', widgetId: panelKey.id, mute })} onClose={() => setPanel(null)} />}
+      {panelKey?.panel === 'volume' && <VolumePanel level={panelKey.level} muted={panelKey.muted} apps={panelKey.apps} outputs={panelKey.outputs}
+        onSet={percent => conn.send({ t: 'volume', widgetId: panelKey.id, percent })} onMute={mute => conn.send({ t: 'volume', widgetId: panelKey.id, mute })}
+        onApp={(app, c) => conn.send({ t: 'volume', widgetId: panelKey.id, app, ...c })} onOutput={output => conn.send({ t: 'volume', widgetId: panelKey.id, output })}
+        onClose={() => setPanel(null)} />}
       {panelKey?.panel === 'bluetooth' && <BluetoothPanel bt={panelKey.bluetooth} onPower={power => conn.send({ t: 'bluetooth', widgetId: panelKey.id, power })} onDevice={(device, connect) => conn.send({ t: 'bluetooth', widgetId: panelKey.id, device, connect })} onClose={() => setPanel(null)} />}
+      {panelKey?.panel === 'trackpad' && <TrackpadPanel onSend={padSend} onClose={() => setPanel(null)} />}
       {sheet && <Sheet view={view} conn={conn} name={name} onRename={onRename} dimAfter={dimAfter} onDimAfter={onDimAfter} onClose={() => setSheet(false)} />}
     </div>
   );
@@ -182,10 +213,12 @@ function Sheet({ view, conn, name, onRename, dimAfter, onDimAfter, onClose }: { 
           onBlur={() => { const n = draft.trim(); if (n && n !== name) onRename(n); }} />
         {!fromHomeScreen() && <>
           <h2 class="sheet-h">Add to your home screen</h2>
-          <p class="hint">In Chrome, tap ⋮ and then Add to Home screen. TabbyDeck then opens full screen from its own icon, and stays paired.</p>
+          <p class="hint">{isIOS()
+            ? 'In Safari, tap Share and then Add to Home Screen. TabbyDeck then opens full screen from its own icon. The icon keeps its own storage, so pair it once more the first time you open it.'
+            : 'In Chrome, tap ⋮ and then Add to Home screen. TabbyDeck then opens full screen from its own icon, and stays paired.'}</p>
         </>}
         <div class="sheet-row">
-          {!fromHomeScreen() && <button type="button" class="btn" onClick={toggleFullscreen}><Icon name="arrows-out" size={18} />Fullscreen</button>}
+          {!fromHomeScreen() && canFullscreen() && <button type="button" class="btn" onClick={toggleFullscreen}><Icon name="arrows-out" size={18} />Fullscreen</button>}
           <button type="button" class="btn primary" onClick={onClose}>Done</button>
         </div>
         <p class="hint">Connected to {location.host}</p>

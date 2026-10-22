@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import type { ParamSchema, ParamField, Screen } from '@tabbydeck/shared';
+import type { AudioOutput, ParamSchema, ParamField, Screen } from '@tabbydeck/shared';
 import { Icon } from '@tabbydeck/ui';
 import { useApi, useSnapshot } from '../state.ts';
 import { fieldError, hotkeyFromEvent } from './fields/logic.ts';
@@ -39,11 +39,20 @@ function Field({ f, value, onChange, invalid }: { f: ParamField; value: unknown;
     case 'boolean': return (
       <label class="check"><input type="checkbox" checked={Boolean(value)} onChange={e => onChange((e.target as HTMLInputElement).checked)} />{f.title}</label>
     );
-    case 'enum': return (
-      <div class="segmented" role="radiogroup" aria-label={f.title}>
-        {(f.options ?? []).map(o => <button key={o} type="button" role="radio" aria-checked={value === o} class={value === o ? 'seg on' : 'seg'} onClick={() => onChange(o)}>{o[0].toUpperCase() + o.slice(1)}</button>)}
-      </div>
-    );
+    case 'enum': {
+      const opts = f.options ?? [], label = (o: string, i: number) => f.labels?.[i] ?? o[0].toUpperCase() + o.slice(1);
+      // A few short choices read best side by side; a longer list (where to put a window) is a menu.
+      if (opts.length > 4) return (
+        <select aria-label={f.title} class={cls} value={String(value ?? '')} onChange={e => onChange((e.target as HTMLSelectElement).value)}>
+          {opts.map((o, i) => <option key={o} value={o}>{label(o, i)}</option>)}
+        </select>
+      );
+      return (
+        <div class="segmented" role="radiogroup" aria-label={f.title}>
+          {opts.map((o, i) => <button key={o} type="button" role="radio" aria-checked={value === o} class={value === o ? 'seg on' : 'seg'} onClick={() => onChange(o)}>{label(o, i)}</button>)}
+        </div>
+      );
+    }
     case 'profile': return (
       <select aria-label={f.title} class={cls} value={String(value ?? '')} onChange={e => onChange((e.target as HTMLSelectElement).value)}>
         <option value="">Choose a profile</option>
@@ -61,6 +70,8 @@ function Field({ f, value, onChange, invalid }: { f: ParamField; value: unknown;
       </select>
     );
     case 'screen': return <ScreenField label={f.title} value={String(value ?? 'all')} onChange={onChange} />;
+    case 'window': return <WindowField label={f.title} value={String(value ?? '')} onChange={onChange} required={f.required} />;
+    case 'audioOutput': return <OutputField label={f.title} value={String(value ?? '')} onChange={onChange} />;
     case 'path': return <PathField label={f.title} value={String(value ?? '')} onChange={onChange} invalid={invalid} />;
     default: return <input aria-label={f.title} class={cls} value={String(value ?? '')} spellcheck={false} onInput={e => onChange((e.target as HTMLInputElement).value)} />;
   }
@@ -80,6 +91,40 @@ function PathField({ label, value, onChange, invalid }: { label: string; value: 
         </Modal>
       )}
     </div>
+  );
+}
+
+/** A program file or window title, typed or picked from the apps open now (saved as their program file, e.g. code.exe). */
+function WindowField({ label, value, onChange, required }: { label: string; value: string; onChange(v: string): void; required?: boolean }) {
+  const api = useApi();
+  const [open, setOpen] = useState<{ exe: string; title: string }[] | null>(null);
+  useEffect(() => { api.cmd<{ exe: string; title: string }[]>('windows.list', {}).then(setOpen, () => setOpen([])); }, []);
+  return (
+    <div class="field-stack">
+      <input aria-label={label} class="input" value={value} placeholder={required ? 'code.exe, or words from its title' : 'Empty: the window in front'} spellcheck={false} onInput={e => onChange((e.target as HTMLInputElement).value)} />
+      <select aria-label="Pick an open app" class="input" value="" onChange={e => { const v = (e.target as HTMLSelectElement).value; if (v) onChange(v); }}>
+        <option value="">{open?.length ? 'Or pick an app that is open now' : 'No apps are open'}</option>
+        {(open ?? []).map(w => <option key={w.exe} value={w.exe}>{w.title.length > 50 ? `${w.title.slice(0, 50)}…` : w.title} ({w.exe})</option>)}
+      </select>
+    </div>
+  );
+}
+
+/** "Speakers (Realtek(R) Audio)" -> "Speakers". */
+const shortOutput = (name: string) => name.replace(/\s+\(.*\)\s*$/, '') || name;
+
+/** The sound outputs connected now, or "the next one" (empty) to go round them all. A saved output that is unplugged stays listed. */
+function OutputField({ label, value, onChange }: { label: string; value: string; onChange(v: string): void }) {
+  const api = useApi();
+  const [outputs, setOutputs] = useState<AudioOutput[] | null>(null);
+  useEffect(() => { api.cmd<AudioOutput[]>('audio.outputs', {}).then(setOutputs, () => setOutputs([])); }, []);
+  const known = !outputs || !value || outputs.some(o => o.id === value);
+  return (
+    <select aria-label={label} class="input" value={value} onChange={e => onChange((e.target as HTMLSelectElement).value)}>
+      <option value="">The next output, each press</option>
+      {(outputs ?? []).map(o => <option key={o.id} value={o.id}>{shortOutput(o.name)}</option>)}
+      {!known && <option value={value}>An output that is not connected</option>}
+    </select>
   );
 }
 

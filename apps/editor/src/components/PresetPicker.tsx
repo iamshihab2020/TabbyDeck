@@ -7,11 +7,13 @@ import { Modal } from './Modal.tsx';
 import { useApi } from '../state.ts';
 
 /** The widget a preset adds at (x, y): its look, and its steps on Press. */
+const steps = (list: Preset['steps']) => list.map(s => ({ id: newId(), action: s.action, params: s.params ?? {} }));
+
 export function presetWidget(p: Preset, x: number, y: number): Omit<Widget, 'id' | 'folderId'> {
   return {
     x, y, w: 1, h: 1,
     look: { ...DEFAULT_LOOK, label: p.label, icon: p.icon, bg: p.bg, fg: p.fg ?? DEFAULT_LOOK.fg },
-    config: { kind: 'button', policy: 'ignore', triggers: { press: p.steps.map(s => ({ id: newId(), action: s.action, params: s.params ?? {} })) } },
+    config: { kind: 'button', policy: 'ignore', triggers: { press: steps(p.steps), ...(p.long ? { long: steps(p.long) } : {}) } },
   };
 }
 

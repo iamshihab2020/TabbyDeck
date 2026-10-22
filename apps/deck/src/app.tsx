@@ -10,7 +10,7 @@ import { keepAwake } from './wake.ts';
 import { toggleFullscreen } from './fullscreen.ts';
 import { createIdleDimmer, loadDimAfter, saveDimAfter } from './idle.ts';
 
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 
 export function App() {
   const kv = useMemo(browserKV, []);
@@ -31,8 +31,8 @@ export function App() {
       onDeck: v => setView(v),
       onPatch: (m: Extract<HostMsg, { t: 'patch' }>) => {
         if (m.flash) setFlash({ id: m.widgetId, kind: m.flash, n: Date.now() });
-        const { look, value, active, disabled, screens, level, muted, bluetooth } = m;
-        const live = { value, active, disabled, screens, level, muted, bluetooth };
+        const { look, value, active, disabled, screens, level, muted, bluetooth, apps, outputs, big } = m;
+        const live = { value, active, disabled, screens, level, muted, bluetooth, apps, outputs, big };
         for (const k of Object.keys(live) as (keyof typeof live)[]) if (live[k] === undefined) delete live[k];
         if (look || Object.keys(live).length) setView(v => v && { ...v, widgets: v.widgets.map(w => w.id === m.widgetId ? { ...w, look: { ...w.look, ...look }, ...live } : w) });
       },

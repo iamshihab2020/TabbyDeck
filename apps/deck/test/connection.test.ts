@@ -25,6 +25,11 @@ describe('device identity', () => {
     expect(defaultDeviceName('Mozilla/5.0 (Linux; Android 10; Pixel 4) Mobile Safari')).toBe('Android phone');
     expect(defaultDeviceName('Mozilla/5.0 (Windows NT 10.0; Win64; x64)')).toBe('Windows PC');
     expect(defaultDeviceName('curl/8')).toBe('Browser');
+    expect(defaultDeviceName('Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) Mobile/15E148 Safari/604.1')).toBe('iPhone');
+    // iPadOS asks for desktop pages and reports a Mac; only the touch screen gives it away.
+    const ipad = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Version/17.5 Safari/605.1.15';
+    expect(defaultDeviceName(ipad, 5)).toBe('iPad');
+    expect(defaultDeviceName(ipad, 0)).toBe('Browser');
   });
   it('survives a corrupt stored value', () => {
     const kv = memory();

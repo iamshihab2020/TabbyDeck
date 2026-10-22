@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { Icon, Mark } from '@tabbydeck/ui';
 import type { ConnState } from '../connection.ts';
+import { canFullscreen, fromHomeScreen } from '../fullscreen.ts';
 
 export interface PairProps {
   state: ConnState;
@@ -18,7 +19,7 @@ export function Pair({ state, code, name, onRename, onFullscreen }: PairProps) {
     <main class="pair">
       <header class="pair-top">
         <span class="brand"><Mark size={22} class="brand-mark" />TabbyDeck</span>
-        <button type="button" class="icon-btn" aria-label="Fullscreen" onClick={onFullscreen}><Icon name="arrows-out" size={20} /></button>
+        {!fromHomeScreen() && canFullscreen() && <button type="button" class="icon-btn" aria-label="Fullscreen" onClick={onFullscreen}><Icon name="arrows-out" size={20} /></button>}
       </header>
 
       <section class="pair-body" aria-live="polite">

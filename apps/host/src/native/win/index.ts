@@ -5,6 +5,14 @@ import { createWinSystem } from './system.ts';
 import { createWinAudio } from './audio.ts';
 import { createWinDisplay } from './display.ts';
 import { PowerShellHost } from './ps.ts';
+import { win32 } from './win32.ts';
+
+// BatteryFlag 128 means no battery; ACLineStatus 1 is plugged in.
+const battery = () => {
+  const s = { ACLineStatus: 0, BatteryFlag: 0, BatteryLifePercent: 0, SystemStatusFlag: 0, BatteryLifeTime: 0, BatteryFullLifeTime: 0 };
+  if (!win32().GetSystemPowerStatus(s) || s.BatteryFlag === 128 || s.BatteryFlag === 255 || s.BatteryLifePercent > 100) return null;
+  return { percent: s.BatteryLifePercent, charging: s.ACLineStatus === 1 };
+};
 
 /** The Windows native layer. The PowerShell host starts lazily on the first audio or clipboard call. */
 export function createWinNative(opts: { dataDir: string }): Native {
@@ -14,7 +22,7 @@ export function createWinNative(opts: { dataDir: string }): Native {
     system: createWinSystem(ps, opts.dataDir),
     audio: createWinAudio(ps),
     display: createWinDisplay(ps),
-    sysinfo: createSysInfo(),
+    sysinfo: createSysInfo(battery),
     dispose: async () => ps.dispose(),
   };
 }

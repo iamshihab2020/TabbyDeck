@@ -51,6 +51,11 @@ export function registerDisplay(registry: ActionRegistry, deps: { native: Native
     run: async () => {}, // the tablet opens the panel itself
   });
   registry.register({
+    id: 'system.dnd', name: 'Do not disturb', group: 'System', description: 'Turns Windows notifications off and on, like the bell in the notification centre. The centre opens for a moment while it switches.',
+    schema: { mode: MODE },
+    run: async p => deps.native.system.setDnd(resolve(p.mode, await deps.native.system.getDnd())),
+  });
+  registry.register({
     id: 'display.nightLight', name: 'Night light', group: 'Display', description: 'Warmer colours that are easier on the eyes at night',
     schema: { mode: MODE },
     run: async p => display.setNightLight(resolve(p.mode, await display.getNightLight())),

@@ -1,11 +1,12 @@
 import { execFile, spawn } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { BtDevice } from '@tabbydeck/shared';
 import type { NativeSystem } from '../types.ts';
 import type { PowerShellHost } from './ps.ts';
 import { psQuote } from './ps.ts';
 import { win32 } from './win32.ts';
+import { findWindow, foregroundWindow, listWindows, placeWindow, previousAppWindow } from './windows.ts';
 
 const SW_RESTORE = 9;
 const VK_MENU = 0x12, KEYEVENTF_KEYUP = 0x2;
@@ -13,6 +14,18 @@ const VK_MENU = 0x12, KEYEVENTF_KEYUP = 0x2;
 const exec = (file: string, args: string[], timeout = 15000) => new Promise<{ code: number; out: string }>(res => {
   execFile(file, args, { windowsHide: true, timeout }, (err, stdout, stderr) => res({ code: err ? (typeof (err as NodeJS.ErrnoException & { code?: unknown }).code === 'number' ? (err as unknown as { code: number }).code : 1) : 0, out: `${stdout}${stderr}` }));
 });
+
+/** Bring a window to the front (restoring it if minimized). False when there is none. */
+const bringForward = (h: unknown): boolean => {
+  if (!h) return false;
+  const w = win32();
+  if (w.IsIconic(h)) w.ShowWindow(h, SW_RESTORE);
+  // A background process may only take focus right after input; a lone Alt tap satisfies that rule.
+  w.keybd_event(VK_MENU, 0, 0, 0); w.keybd_event(VK_MENU, 0, KEYEVENTF_KEYUP, 0);
+  return w.SetForegroundWindow(h);
+};
+
+const isFolder = (p: string) => { try { return statSync(p).isDirectory(); } catch { return false; } };
 
 /** Start a program without a shell, resolving once it has spawned (or rejecting if it cannot be found). */
 const startDetached = (file: string, args: string[]) => new Promise<void>((resolve, reject) => {
@@ -75,7 +88,6 @@ namespace Tabby {
     interface IKsControl {
       [PreserveSig] int KsProperty(ref KsProp p, uint pLen, IntPtr data, uint dataLen, out uint returned);
     }
-    [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] class MMDeviceEnumerator {}
 
     static readonly Guid BtAudioProps = new Guid("7FA06C40-B8F6-4C7E-8556-E8C33A12E54D");
     const uint ONESHOT_RECONNECT = 0, ONESHOT_DISCONNECT = 1, KSPROPERTY_TYPE_GET = 1;
@@ -99,7 +111,7 @@ namespace Tabby {
 
     /// <summary>Returns the number of audio drivers that took the call: 0 means this is not a Bluetooth audio device here.</summary>
     public static int Run(string address, bool connect) {
-      var e = (IMMDeviceEnumerator)new MMDeviceEnumerator();
+      var e = (IMMDeviceEnumerator)Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")));
       var ks = typeof(IKsControl).GUID;
       int done = 0;
       foreach (var f in Filters(e, address)) {
@@ -113,7 +125,7 @@ namespace Tabby {
     }
 
     /// <summary>For checking: the audio drivers found for an address.</summary>
-    public static string[] Find(string address) { return Filters((IMMDeviceEnumerator)new MMDeviceEnumerator(), address).ToArray(); }
+    public static string[] Find(string address) { return Filters((IMMDeviceEnumerator)Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("BCDE0395-E52F-467C-8E3D-C4579291692E"))), address).ToArray(); }
   }
 }
 `;
@@ -151,11 +163,30 @@ const BT_GET = "$r = Get-TabbyBluetooth; if ($r) { [string]$r.State } else { 'no
 const BT_SET = (on: boolean) => `$r = Get-TabbyBluetooth; if ($r) { [string](Await-Tabby ($r.SetStateAsync('${on ? 'On' : 'Off'}')) ([Windows.Devices.Radios.RadioAccessStatus])) } else { 'none' }`;
 const BT_ADDRESS = /^[0-9a-f]{12}$/;
 
+const MEDIA_PROPS = `function global:Get-TabbyMediaProps($s) { Await-Tabby ($s.TryGetMediaPropertiesAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties]) }`;
 // What is playing, from the media sessions Windows shows in its volume flyout.
 const MEDIA_PRELUDE = { key: 'media', script: `${WINRT_PS}
 [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType = WindowsRuntime] | Out-Null
-$global:TabbyMedia = Await-Tabby ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])` };
+[Windows.Storage.Streams.IRandomAccessStreamWithContentType, Windows.Storage.Streams, ContentType = WindowsRuntime] | Out-Null
+$global:TabbyAsStream = [System.IO.WindowsRuntimeStreamExtensions].GetMethod('AsStreamForRead', [type[]]@([Windows.Storage.Streams.IInputStream]))
+$global:TabbyMedia = Await-Tabby ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])
+${MEDIA_PROPS}` };
 const MEDIA_GET = "$s = $global:TabbyMedia.GetCurrentSession(); if ($s) { [string]$s.GetPlaybackInfo().PlaybackStatus } else { 'none' }";
+const NOW_PLAYING = "$s = $global:TabbyMedia.GetCurrentSession(); if ($s) { $p = Get-TabbyMediaProps $s; ConvertTo-Json -Compress @{ title = [string]$p.Title; artist = [string]$p.Artist; status = [string]$s.GetPlaybackInfo().PlaybackStatus } }";
+// The cover art as base64 plus its type. Windows hands it over as a WinRT stream, which PowerShell 5.1 can only
+// read through reflection (it cannot cast the stream to the interface itself), as Await-Tabby does for tasks.
+const NOW_PLAYING_ART = `$s = $global:TabbyMedia.GetCurrentSession(); if ($s) { $p = Get-TabbyMediaProps $s; if ($p.Thumbnail) {
+  $st = Await-Tabby ($p.Thumbnail.OpenReadAsync()) ([Windows.Storage.Streams.IRandomAccessStreamWithContentType])
+  $ct = [Windows.Storage.Streams.IContentTypeProvider].GetProperty('ContentType').GetValue($st)
+  $m = New-Object IO.MemoryStream; $global:TabbyAsStream.Invoke($null, @($st)).CopyTo($m)
+  [string]$ct + ' ' + [Convert]::ToBase64String($m.ToArray()) } }`;
+// Windows' privacy settings record each app's camera use; a start time with no stop time is an app using it now.
+const CAMERA_IN_USE = `$u = $false; foreach ($k in Get-ChildItem 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\webcam' -Recurse -ErrorAction SilentlyContinue) {
+  if ($k.GetValue('LastUsedTimeStop') -eq 0 -and $k.GetValue('LastUsedTimeStart')) { $u = $true; break } }; $u`;
+
+// A program is recorded by its path with # for \ (C:#Program Files#Zoom#bin#Zoom.exe); a Store app by its package name.
+const MIC_USERS = `foreach ($k in Get-ChildItem 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\microphone' -Recurse -ErrorAction SilentlyContinue) {
+  if ($k.GetValue('LastUsedTimeStop') -eq 0 -and $k.GetValue('LastUsedTimeStart')) { ($k.PSChildName -split '#')[-1].ToLower() } }`;
 
 // App icons through the shell, the same pictures as the Start menu. Copies the 32-bit DIB by hand: Image.FromHbitmap drops alpha.
 const APPICON_CS = String.raw`
@@ -233,6 +264,33 @@ ${APPICON_CS}
 '@
 ${PKG_LOGO_PS}` };
 
+// Do not disturb has no public switch. Its state is the shell's quiet-hours profile (WNF_SHEL_QUIETHOURS_ACTIVE_PROFILE_CHANGED,
+// 0 = off), which Windows 11 shows but does not obey when written; so the change goes through the bell button in the
+// notification centre: Win+N opens it with that button focused, UI Automation toggles it, Esc closes it again.
+const QUIET_HOURS = 0x0D83063EA3BF1C75n;
+const DND_PRELUDE = { key: 'dnd', script: `Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes; Add-Type -Namespace Tabby -Name Keys -MemberDefinition '[DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, IntPtr extra);'` };
+const DND_TOGGLE = String.raw`
+$tap = { param($k) foreach ($v in $k) { [Tabby.Keys]::keybd_event($v, 0, 0, [IntPtr]::Zero) }; [array]::Reverse($k); foreach ($v in $k) { [Tabby.Keys]::keybd_event($v, 0, 2, [IntPtr]::Zero) } }
+& $tap @(0x5B, 0x4E)
+$b = $null
+for ($i = 0; $i -lt 40 -and -not $b; $i++) {
+  Start-Sleep -Milliseconds 50
+  try { $f = [System.Windows.Automation.AutomationElement]::FocusedElement; if ($f -and $f.Current.AutomationId -eq 'DoNotDisturbButton') { $b = $f } } catch {}
+}
+if ($b) { $b.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Toggle(); & $tap @(0x1B); 'ok' } else { 'none' }`;
+
+// Why a phone may not reach TabbyDeck, from the PC's side. Only reads: the network, the firewall rules for this
+// program (a Block rule wins over any Allow; Windows adds one when its "allow on Public networks" prompt is cancelled),
+// and VPN adapters that are up. Each statement is one line: the PowerShell host reads scripts line by line.
+const NET_CHECK = (program: string) => String.raw`
+$p = ${psQuote(program)}
+$c = Get-NetConnectionProfile | Where-Object { $_.IPv4Connectivity -ne 'Disconnected' } | Sort-Object { $_.InterfaceAlias -notmatch 'Wi-?Fi|WLAN|Ethernet' } | Select-Object -First 1
+$cat = if ($c) { [string]$c.NetworkCategory } else { '' }
+$read = $true; $rules = @(try { Get-NetFirewallApplicationFilter -ErrorAction SilentlyContinue | Where-Object { $_.Program -ieq $p } | Get-NetFirewallRule | Where-Object { $_.Enabled -eq 'True' -and $_.Direction -eq 'Inbound' -and ([string]$_.Profile -eq 'Any' -or [string]$_.Profile -match $cat) } } catch { $read = $false })
+$fw = if (-not $read) { 'unknown' } elseif ($rules | Where-Object Action -eq 'Block') { 'blocked' } elseif ($rules | Where-Object Action -eq 'Allow') { 'allowed' } else { 'missing' }
+$vpn = @(Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { $_.Status -eq 'Up' -and ($_.InterfaceDescription + ' ' + $_.Name) -match 'WireGuard|WARP|Cloudflare|TAP-Windows|Wintun|OpenVPN|Proton|Tailscale|ZeroTier|Fortinet|AnyConnect|NordLynx|VPN' } | ForEach-Object { $_.Name })
+@{ network = if ($c) { [string]$c.Name } else { '' }; category = $cat; firewall = $fw; vpn = $vpn } | ConvertTo-Json -Compress`;
+
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 export function createWinSystem(ps: PowerShellHost, dataDir?: string): NativeSystem {
@@ -245,10 +303,14 @@ export function createWinSystem(ps: PowerShellHost, dataDir?: string): NativeSys
     const r = (await ps.call(`[Tabby.Power]::PowerSetActiveOverlayScheme([Guid]'${guid}')`, 5000, POWER_PRELUDE)).trim();
     if (r !== '0') throw new Error(`Windows refused to change the power mode (${r})`);
   };
+  const getDnd = async () => {
+    const size = [4], value = [0], stamp = [0];
+    return win32().NtQueryWnfStateData([QUIET_HOURS], null, null, stamp, value, size) >= 0 && size[0] > 0 && value[0] !== 0;
+  };
   return {
     // Programs start directly; documents, shortcuts and folders open through Explorer (no cmd.exe parsing).
     // shell: paths (shell:AppsFolder\<app id>) and documents open through Explorer; programs start directly.
-    launch: (path, args) => /^shell:/i.test(path) ? startDetached('explorer.exe', [path]) : /\.(exe|com)$/i.test(path) || !/\.[a-z0-9]{1,5}$/i.test(path) ? startDetached(path, args) : startDetached('explorer.exe', [path]),
+    launch: (path, args) => /^shell:/i.test(path) || isFolder(path) ? startDetached('explorer.exe', [path]) : /\.(exe|com)$/i.test(path) || !/\.[a-z0-9]{1,5}$/i.test(path) ? startDetached(path, args) : startDetached('explorer.exe', [path]),
     openUrl: url => startDetached('explorer.exe', [url]),
     run: (cmd, timeoutMs) => new Promise(res => {
       execFile('cmd.exe', ['/d', '/s', '/c', cmd], { windowsHide: true, timeout: timeoutMs, windowsVerbatimArguments: true }, (err, stdout, stderr) =>
@@ -258,25 +320,11 @@ export function createWinSystem(ps: PowerShellHost, dataDir?: string): NativeSys
       const r = await exec('taskkill.exe', ['/IM', name, '/F']);
       return (r.out.match(/SUCCESS/g) ?? []).length;
     },
-    focusWindow: async title => {
-      const w = win32(); const needle = title.toLowerCase();
-      let found: unknown = null;
-      const cb = w.koffi.register((hwnd: unknown) => {
-        if (!w.IsWindowVisible(hwnd)) return true;
-        const len = w.GetWindowTextLengthW(hwnd);
-        if (len <= 0) return true;
-        const buf = new Uint16Array(len + 1);
-        w.GetWindowTextW(hwnd, buf, len + 1);
-        if (String.fromCharCode(...buf.subarray(0, len)).toLowerCase().includes(needle)) { found = hwnd; return false; }
-        return true;
-      }, w.koffi.pointer(w.EnumProc));
-      try { w.EnumWindows(cb, 0); } finally { w.koffi.unregister(cb); }
-      if (!found) return false;
-      if (w.IsIconic(found)) w.ShowWindow(found, SW_RESTORE);
-      // A background process may only take focus right after input; a lone Alt tap satisfies that rule.
-      w.keybd_event(VK_MENU, 0, 0, 0); w.keybd_event(VK_MENU, 0, KEYEVENTF_KEYUP, 0);
-      return w.SetForegroundWindow(found);
-    },
+    focusWindow: async match => bringForward(findWindow(match)),
+    switchApp: async () => bringForward(previousAppWindow()),
+    windows: listWindows,
+    foregroundWindow,
+    placeWindow,
     activeWindowTitle: () => {
       const w = win32(); const h = w.GetForegroundWindow(); if (!h) return '';
       const len = w.GetWindowTextLengthW(h); if (len <= 0) return '';
@@ -313,11 +361,29 @@ export function createWinSystem(ps: PowerShellHost, dataDir?: string): NativeSys
       if (!n) throw new Error('Windows connects this device by itself when it is switched on');
     },
     mediaPlaying: async () => (await ps.call(MEDIA_GET, 5000, MEDIA_PRELUDE)).trim() === 'Playing',
+    nowPlaying: async () => {
+      const out = (await ps.call(NOW_PLAYING, 5000, MEDIA_PRELUDE)).trim();
+      if (!out) return null;
+      const p = JSON.parse(out) as { title: string; artist: string; status: string };
+      return p.title ? { title: p.title, artist: p.artist, playing: p.status === 'Playing' } : null;
+    },
+    nowPlayingArt: async () => {
+      const out = (await ps.call(NOW_PLAYING_ART, 8000, MEDIA_PRELUDE)).trim();
+      const [type, b64] = out.split(' ');
+      return b64 && /^image\/(png|jpeg|gif|webp|bmp)$/.test(type) ? { type, data: Buffer.from(b64, 'base64') } : null;
+    },
+    micUsers: async () => (await ps.call(MIC_USERS, 5000)).split('\n').map(s => s.trim()).filter(Boolean),
+    cameraInUse: async () => (await ps.call(CAMERA_IN_USE, 5000)).trim() === 'True',
     getEnergySaver: async () => (await ps.call(GET_MODE, 5000, POWER_PRELUDE)).trim() === BEST_EFFICIENCY,
     setEnergySaver: async on => {
       const now = (await ps.call(GET_MODE, 5000, POWER_PRELUDE)).trim();
       if (on && now !== BEST_EFFICIENCY) { before = now; saveBefore(now); await setMode(BEST_EFFICIENCY); }
       if (!on && now === BEST_EFFICIENCY) await setMode(before ?? '00000000-0000-0000-0000-000000000000');
+    },
+    getDnd,
+    setDnd: async on => {
+      if ((await getDnd()) === on) return;
+      if ((await ps.call(DND_TOGGLE, 8000, DND_PRELUDE)).trim() !== 'ok') throw new Error('Windows did not open its notification centre. Unlock the PC and try again.');
     },
     listApps: async () => {
       const out = (await ps.call('@(Get-StartApps | Select-Object Name, AppID) | ConvertTo-Json -Compress', 15000)).trim();
@@ -326,6 +392,11 @@ export function createWinSystem(ps: PowerShellHost, dataDir?: string): NativeSys
       return raw.filter(a => a.AppID && a.Name && !/uninstall/i.test(a.Name) && !seen.has(a.AppID) && seen.add(a.AppID))
         .map(a => ({ id: a.AppID, name: a.Name })).sort((a, b) => a.name.localeCompare(b.name));
     },
+    networkCheck: async program => {
+      const r = JSON.parse((await ps.call(NET_CHECK(program), 15000)).trim()) as { network: string; category: string; firewall: 'allowed' | 'blocked' | 'missing' | 'unknown'; vpn: string[] | string | null };
+      return { ...r, vpn: r.vpn == null ? [] : Array.isArray(r.vpn) ? r.vpn : [r.vpn] };
+    },
+    hasUrlHandler: async scheme => /^[a-z][a-z0-9+.-]*$/i.test(scheme) && (await exec('reg.exe', ['query', `HKCR\\${scheme}`, '/v', 'URL Protocol'], 5000)).code === 0,
     appIcon: async (id, px) => {
       // Store app (family!app): its logo file, else the shell icon without ICONONLY (which gives some of them a blank
       // page). Desktop app: the shell icon (BIGGERSIZEOK | ICONONLY), margin trimmed.

@@ -111,12 +111,12 @@ describe('system info poller', () => {
 });
 
 describe('registerBuiltins', () => {
-  it('registers keyboard, mouse, system, audio, display and deck actions in that group order', () => {
+  it('registers the built-in actions in catalogue group order', () => {
     const r = new ActionRegistry();
     const native = createFakeNative();
     registerBuiltins(r, { native, held: new HeldKeys(dir, native.input), store });
     const groups = [...new Set(r.list().map(a => a.group))];
-    expect(groups).toEqual(['Keyboard', 'Mouse', 'System', 'Audio', 'Display', 'Deck']);
+    expect(groups).toEqual(['Keyboard', 'Mouse', 'System', 'Audio', 'Media', 'Meetings', 'Display', 'Info', 'Deck']);
     expect(r.get('keyboard.hotkey')).toBeDefined();
     expect(r.get('deck.switchProfile')).toBeDefined();
   });

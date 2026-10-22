@@ -1,16 +1,34 @@
-import { levelOf, levelView, panelOf, statefulAction, type Bluetooth, type Screen, type Widget } from '@tabbydeck/shared';
+import { createHash } from 'node:crypto';
+import { levelOf, levelView, panelOf, statefulAction, type AppSound, type AudioOutput, type Bluetooth, type Look, type Screen, type Widget } from '@tabbydeck/shared';
 import type { Store } from '../store/store.ts';
 import type { Native } from '../native/types.ts';
 import type { Clients } from '../server/clients.ts';
 
 /** What a key shows of the PC's live state: on or off, a level with the key greyed out at its end, or the screens. */
-export interface Live { active?: boolean; value?: string; disabled?: boolean; screens?: Screen[]; level?: number; muted?: boolean; bluetooth?: Bluetooth }
+export interface Live {
+  active?: boolean; value?: string; disabled?: boolean; screens?: Screen[]; level?: number; muted?: boolean; bluetooth?: Bluetooth;
+  apps?: AppSound[]; outputs?: AudioOutput[]; big?: string;
+  /** Replaces parts of the key's own look while the state lasts (Now playing shows the title and cover). */
+  look?: Partial<Look>;
+}
 
 // The state each panel shows: the screens for brightness, level and mute for volume.
 const PANEL_STATE: Record<string, string> = { brightness: 'screens', volume: 'sound', bluetooth: 'bluetoothPanel' };
 
-type Sound = { level: number; muted: boolean };
-type State = boolean | number | Screen[] | Sound | Bluetooth;
+// Keys whose first step reads a richer state than on or off.
+const LIVE_STATE: Record<string, string> = { 'media.nowPlaying': 'nowPlaying', 'audio.output': 'outputs' };
+
+type Sound = { level: number; muted: boolean; apps: AppSound[]; outputs: AudioOutput[] };
+type Track = { track: { title: string; artist: string; playing: boolean; art?: string } | null };
+type State = boolean | number | Screen[] | Sound | Bluetooth | Track | { outputs: AudioOutput[] };
+
+/** The cover art of what is playing, served to the decks at /assets/u/<id>. */
+export interface Art { id: string; type: string; data: Buffer }
+const ART_EXT: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp', 'image/bmp': 'bmp' };
+export const ART_ID = /^np-[0-9a-f]{12}\.(png|jpg|gif|webp|bmp)$/;
+
+/** "FxSound Speakers (FxSound Audio Enhancer)" -> "FxSound Speakers": the driver's name in brackets does not fit on a key. */
+export const shortOutputName = (name: string) => name.replace(/\s+\(.*\)\s*$/, '') || name;
 
 /**
  * Keeps stateful buttons (Mute, Night light, Volume +, ...) showing the PC's real state. Reads only the states the
@@ -21,6 +39,9 @@ export class StateWatcher {
   private timer: ReturnType<typeof setTimeout> | undefined;
   private stopped = false;
   private readonly read: Record<string, () => Promise<State>>;
+  /** The newest cover art, kept until the track changes. */
+  art: Art | null = null;
+  private artFor = '';
 
   constructor(private d: { store: Store; native: Native; clients: Clients; intervalMs?: number }) {
     const n = d.native;
@@ -31,6 +52,23 @@ export class StateWatcher {
       'system.energySaver': () => n.system.getEnergySaver(),
       'system.bluetooth': () => n.system.getBluetooth(),
       'media.playPause': () => n.system.mediaPlaying(),
+      'system.dnd': () => n.system.getDnd(),
+      'meeting.camera': () => n.system.cameraInUse(),
+      nowPlaying: async () => {
+        const t = await n.system.nowPlaying();
+        if (!t) return { track: null };
+        // Players often send the cover a moment after the title, so a track without art asks again next time.
+        const key = `${t.title}
+${t.artist}`;
+        if (key !== this.artFor || !this.art) {
+          if (key !== this.artFor) this.art = null;
+          this.artFor = key;
+          const a = await n.system.nowPlayingArt().catch(() => null);
+          if (a && ART_EXT[a.type]) this.art = { id: `np-${createHash('sha1').update(a.data).digest('hex').slice(0, 12)}.${ART_EXT[a.type]}`, ...a };
+        }
+        return { track: { ...t, ...(this.art ? { art: this.art.id } : {}) } };
+      },
+      outputs: async () => ({ outputs: await n.audio.outputs() }),
       bluetoothPanel: async () => {
         let on: boolean;
         try { on = await n.system.getBluetooth(); } catch { return { available: false, on: false, devices: [] }; } // no Bluetooth here
@@ -38,21 +76,36 @@ export class StateWatcher {
       },
       volume: () => n.audio.getVolume(),
       screens: () => n.display.screens(),
-      sound: async () => ({ level: Math.round(await n.audio.getVolume()), muted: await n.audio.getMute() }),
+      sound: async () => ({
+        level: Math.round(await n.audio.getVolume()), muted: await n.audio.getMute(),
+        apps: await n.audio.apps().catch(() => []), outputs: await n.audio.outputs().catch(() => []),
+      }),
     };
   }
 
-  private static key(w: Widget): string | undefined { return PANEL_STATE[panelOf(w) ?? ''] ?? statefulAction(w) ?? levelOf(w)?.level; }
+  private static key(w: Widget): string | undefined {
+    const first = w.config.kind === 'button' ? w.config.triggers.press?.[0]?.action ?? '' : '';
+    return PANEL_STATE[panelOf(w) ?? ''] ?? LIVE_STATE[first] ?? statefulAction(w) ?? levelOf(w)?.level;
+  }
 
   liveOf = (w: Widget): Live => {
     const k = StateWatcher.key(w), v = k === undefined ? undefined : this.state.get(k);
     if (typeof v === 'boolean') return { active: v };
     if (typeof v === 'number') return levelView(levelOf(w)!.dir, [v]);
+    if (v && typeof v === 'object' && 'track' in v) {
+      const t = v.track;
+      if (t) return { active: t.playing, value: t.artist, look: { label: t.title, image: t.art ?? '' } };
+      return { active: false, value: '', look: { label: w.look.label ?? '', image: w.look.image ?? '' } }; // nothing playing: the key's own look
+    }
+    if (v && typeof v === 'object' && 'outputs' in v && !('level' in v)) {
+      const cur = v.outputs.find(o => o.isDefault), want = w.config.kind === 'button' ? String(w.config.triggers.press?.[0]?.params.output ?? '') : '';
+      return want ? { active: cur?.id === want } : { value: cur ? shortOutputName(cur.name) : '' };
+    }
     if (v && typeof v === 'object' && 'devices' in v) {
       const on = v.devices.find(d => d.connected);
       return { bluetooth: v, active: v.on, value: !v.available ? undefined : !v.on ? 'Off' : on ? on.name : 'On' };
     }
-    if (v && typeof v === 'object' && !Array.isArray(v)) return { value: v.muted ? 'Muted' : `${v.level}%`, level: v.level, muted: v.muted };
+    if (v && typeof v === 'object' && 'level' in v) { const o = v as Sound; return { value: o.muted ? 'Muted' : `${o.level}%`, level: o.level, muted: o.muted, apps: o.apps, outputs: o.outputs }; }
     if (Array.isArray(v)) {
       if (panelOf(w)) return { screens: v };
       const l = levelOf(w)!, moved = v.filter(s => l.screen === 'all' || s.id === l.screen);

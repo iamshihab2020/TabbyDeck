@@ -23,7 +23,11 @@ export interface ClientSession {
 type PressFn = (s: ClientSession, w: Widget, kind: TriggerKind) => void;
 interface ClientsEvents { deviceConnected: [{ deviceId: string; ip: string }]; deviceDisconnected: [{ deviceId: string }]; pairRequest: [{ deviceId: string; name: string; ip: string }] }
 
-interface Conn extends ClientSession { sock: WebSocket; token?: string }
+interface Conn extends ClientSession {
+  sock: WebSocket; token?: string;
+  /** Set while the app in front chose the profile: the one the device was on before, to return to. */
+  home?: string;
+}
 
 export class Clients extends EventEmitter<ClientsEvents> {
   private conns = new Set<Conn>();
@@ -32,8 +36,9 @@ export class Clients extends EventEmitter<ClientsEvents> {
   private store: Store; private pairing: Pairing; private sessions: Sessions; private log: Logger;
   onPress: PressFn;
   onBrightness: (c: ClientSession, screen: string, percent: number) => void = () => {};
-  onVolume: (c: ClientSession, percent: number | undefined, mute: boolean | undefined) => void = () => {};
+  onVolume: (c: ClientSession, m: { percent?: number; mute?: boolean; app?: string; output?: string }) => void = () => {};
   onBluetooth: (c: ClientSession, m: { power?: boolean; device?: string; connect?: boolean }) => void = () => {};
+  onPointer: (c: ClientSession, m: Extract<import('@tabbydeck/shared').ClientMsg, { t: 'pointer' }>) => void = () => {};
 
   constructor(opts: { store: Store; pairing: Pairing; sessions: Sessions; log: Logger; onPress: PressFn }) {
     super();
@@ -93,13 +98,17 @@ export class Clients extends EventEmitter<ClientsEvents> {
     } else if (m.t === 'volume') {
       const w = this.store.widget(m.widgetId), f = this.store.profile(c.profileId);
       if (!w || !f?.widgets.includes(w) || panelOf(w) !== 'volume') return this.log.debug('clients', 'volume from a deck without the panel', { widgetId: m.widgetId });
-      this.onVolume(c, m.percent, m.mute);
+      this.onVolume(c, m);
     } else if (m.t === 'bluetooth') {
       const w = this.store.widget(m.widgetId), f = this.store.profile(c.profileId);
       if (!w || !f?.widgets.includes(w) || panelOf(w) !== 'bluetooth') return this.log.debug('clients', 'bluetooth from a deck without the panel', { widgetId: m.widgetId });
       this.onBluetooth(c, m);
+    } else if (m.t === 'pointer') {
+      const w = this.store.widget(m.widgetId), f = this.store.profile(c.profileId);
+      if (!w || !f?.widgets.includes(w) || panelOf(w) !== 'trackpad') return this.log.debug('clients', 'pointer from a deck without the trackpad', { widgetId: m.widgetId });
+      this.onPointer(c, m);
     } else if (m.t === 'profile') {
-      if (this.store.profile(m.profileId)) this.goToProfile(c, m.profileId);
+      if (this.store.profile(m.profileId)) { c.home = undefined; this.goToProfile(c, m.profileId); }
       else this.log.debug('clients', 'unknown profile requested', { profileId: m.profileId });
     }
   }
@@ -146,7 +155,7 @@ export class Clients extends EventEmitter<ClientsEvents> {
     this.pushDeck(c);
   }
   private pushDeck(c: Conn) {
-    try { this.send(c, { t: 'deck', view: buildDeckView(this.store, c.profileId, c.folderId, this.liveOf) }); }
+    try { this.send(c, { t: 'deck', view: buildDeckView(this.store, c.profileId, c.folderId, this.liveOf, this.hidden) }); }
     catch (e) { this.log.error('clients', 'deck view failed', { error: String(e) }); }
   }
   private send(c: Conn, m: HostMsg) { if (c.sock.readyState === 1) c.sock.send(JSON.stringify(m)); }
@@ -172,6 +181,8 @@ export class Clients extends EventEmitter<ClientsEvents> {
   }
   /** Whether a stateful button is on right now; set by the host's state watcher. */
   liveOf: (w: Widget) => Live = () => ({});
+  /** Keys left off the decks: they open an app this PC does not have. */
+  hidden: (w: Widget) => boolean = () => false;
   patch(widgetId: string, p: { look?: Partial<Look>; flash?: 'error' | 'ok' } & Live): void {
     const w = this.store.widget(widgetId); if (!w) return;
     for (const c of this.conns) if (c.authed && c.folderId === w.folderId) this.send(c, { t: 'patch', widgetId, ...p });
@@ -179,7 +190,24 @@ export class Clients extends EventEmitter<ClientsEvents> {
   notify(target: string | 'all', text: string, vibrate = false): void {
     for (const c of this.conns) if (c.authed && (target === 'all' || c.deviceId === target)) this.send(c, { t: 'notify', text, vibrate });
   }
-  switchProfile(deviceId: string, profileId: string): void { for (const c of this.conns) if (c.authed && c.deviceId === deviceId) this.goToProfile(c, profileId); }
+  switchProfile(deviceId: string, profileId: string): void { for (const c of this.conns) if (c.authed && c.deviceId === deviceId) { c.home = undefined; this.goToProfile(c, profileId); } }
+  /**
+   * The app in front changed. Devices that follow apps go to profileId, the profile that lists the app, remembering
+   * where they were; with null (an app no profile lists) they go back there. A profile picked by hand stays.
+   */
+  followApp(profileId: string | null): void {
+    for (const c of this.conns) {
+      if (!c.authed || !c.deviceId || this.store.device(c.deviceId)?.followApps === false) continue;
+      if (profileId) {
+        if (c.profileId === profileId || !this.store.profile(profileId)) continue;
+        c.home ??= c.profileId;
+        this.goToProfile(c, profileId);
+      } else if (c.home !== undefined) {
+        const home = c.home; c.home = undefined;
+        if (home !== c.profileId) this.goToProfile(c, this.store.profile(home) ? home : this.firstProfileId());
+      }
+    }
+  }
   openFolder(deviceId: string, folderId: string | null): void {
     for (const c of this.conns) {
       if (!c.authed || c.deviceId !== deviceId) continue;

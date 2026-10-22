@@ -116,3 +116,12 @@ describe('long labels', () => {
     expect(render(<Tile widget={w} cell={{ w: 80, h: 100 }} assetUrl={x => x} />)).toMatch(/font-size:\s*12px/);
   });
 });
+
+describe('key colours for the styles', () => {
+  it('passes the key colours as rgb parts, and nothing for other formats', async () => {
+    const { rgbVar } = await import('../src/looks.ts');
+    expect(rgbVar('--key-rgb', '#1e3a5f')).toEqual({ '--key-rgb': '30, 58, 95' });
+    expect(rgbVar('--fg-rgb', '#fff')).toEqual({ '--fg-rgb': '255, 255, 255' });
+    expect(rgbVar('--key-rgb', 'red')).toEqual({});
+  });
+});

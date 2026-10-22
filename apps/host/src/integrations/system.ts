@@ -56,8 +56,8 @@ export function registerSystem(registry: ActionRegistry, deps: { native: Native 
   });
   registry.register({
     id: 'system.focus', name: 'Switch to window', group: 'System',
-    schema: { title: { type: 'string', title: 'Window title contains', required: true } },
-    run: async p => { if (!(await system.focusWindow(String(p.title)))) throw new Error(`No window title contains "${p.title}"`); },
+    schema: { title: { type: 'window', title: 'App or window title', required: true } },
+    run: async p => { if (!(await system.focusWindow(String(p.title)))) throw new Error(`No window matches "${p.title}"`); },
   });
   registry.register({ id: 'system.lock', name: 'Lock computer', group: 'System', schema: {}, run: () => system.lock() });
   registry.register({ id: 'system.sleep', name: 'Sleep', group: 'System', danger: true, schema: {}, run: () => system.sleep() });
