@@ -290,3 +290,43 @@ $('.foot').addEventListener('pointermove', e => { if (catPose === 'sleep') { pos
 fetch('https://api.github.com/repos/iamshihab2020/TabbyDeck/releases/latest').then(r => r.ok ? r.json() : null).then(j => {
   if (j && /^v?\d+\.\d+\.\d+$/.test(j.tag_name)) for (const el of document.querySelectorAll('[data-version]')) el.textContent = `Version ${j.tag_name.replace(/^v/, '')}`;
 }).catch(() => {});
+
+/* ---------- Key styles: switch, or watch it go through all six ---------- */
+const STYLES = [
+  ['keycap', 'Keycap', 'A keyboard key: a lit top edge and a lip underneath. It goes down when you press it.'],
+  ['sunken', 'Sunken', 'Set into the panel like a dashboard switch. A press goes deeper.'],
+  ['soft', 'Soft', 'Soft-touch rubber lit from the top left. It sits out of the surface and presses into it.'],
+  ['glass', 'Glass', 'Tinted acrylic with a bright top edge, and colour that shows through.'],
+  ['pad', 'Pad', 'A drum-machine pad with a strip of backlight in the key’s colour. A press lights it all.'],
+  ['outline', 'Outline', 'Clear keys drawn with a line in the key’s colour, for busy decks.'],
+];
+const ST_KEYS = [KEYS[0], KEYS[4], KEYS[5], KEYS[7], KEYS[8], KEYS[9], KEYS[2], KEYS[11]];
+const rgb = hex => { const h = (hex || '#25221f').slice(1); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)).join(', '); };
+const stDeck = $('#stdeck'), stPick = $('#stpick');
+stDeck.innerHTML = ST_KEYS.map((k, i) => keyHtml(k, i, 'div')).join('');
+[...stDeck.children].forEach((el, i) => { el.style.setProperty('--key-rgb', rgb(ST_KEYS[i].bg)); el.style.setProperty('--fg-rgb', rgb(ST_KEYS[i].fg || '#f1e9dd')); });
+stPick.innerHTML = STYLES.map(([id, name], i) => `<button type="button" role="radio" aria-checked="${i === 0}" data-s="${id}">${name}</button>`).join('');
+let stAt = 0, stAuto = !calm, stTimer, stOn = false;
+function pickStyle(i) {
+  stAt = i; const [id, , desc] = STYLES[i];
+  stDeck.className = `st-deck ks-${id}`;
+  for (const b of stPick.children) b.setAttribute('aria-checked', String(b.dataset.s === id));
+  $('#stdesc').textContent = desc;
+  // Press two keys so each style shows how it moves.
+  if (!calm) [0, 3].forEach((n, j) => later(500 + j * 260, () => { const k = stDeck.children[n]; k.classList.add('down'); later(240, () => k.classList.remove('down')); }));
+}
+stPick.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; stAuto = false; clearTimeout(stTimer); pickStyle(STYLES.findIndex(s => s[0] === b.dataset.s)); });
+const stCycle = () => { if (!stAuto) return; if (stOn) pickStyle((stAt + 1) % STYLES.length); stTimer = later(2800, stCycle); };
+new IntersectionObserver(es => { stOn = es[0].isIntersecting; }, { threshold: .4 }).observe(stDeck);
+pickStyle(0); stTimer = later(2800, stCycle);
+
+/* ---------- Stats: the bars grow and the count runs up when they come into view ---------- */
+const board = $('#sxboard');
+new IntersectionObserver((es, o) => {
+  if (!es[0].isIntersecting) return; o.disconnect(); board.classList.add('in');
+  for (const el of board.querySelectorAll('[data-count]')) {
+    const to = +el.dataset.count, t0 = performance.now(), dur = calm ? 0 : 1400;
+    const tick = t => { const p = dur ? Math.min(1, (t - t0) / dur) : 1; el.textContent = Math.round(to * (1 - Math.pow(1 - p, 3))).toLocaleString('en-GB'); if (p < 1) requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+  }
+}, { threshold: .25 }).observe(board);
