@@ -341,3 +341,10 @@ section { padding: clamp(72px, 11vw, 150px) var(--gut); }
 .confirm[hidden] { display: none; }
 .hero-title { text-wrap: balance; }
 .hero-title .line { display: inline; }
+
+/* Coming soon: the Android, iPhone and iPad apps. */
+.soon { display: flex; align-items: center; gap: 14px; margin: 28px 0 0; padding: 12px 18px 12px 12px; max-width: 60ch; border-radius: 16px; background: var(--cap); border: 1px solid var(--line); color: var(--muted); font-size: 16px; line-height: 1.45; text-align: left; }
+.soon b { color: var(--text); font-weight: 650; }
+.soon-icons { display: flex; gap: 4px; flex: none; padding: 9px 10px; border-radius: 11px; background: var(--amber); color: var(--amber-ink); font-size: 20px; box-shadow: 0 3px 0 #b06f05; }
+.js .hero .soon { opacity: 0; animation: fadein .8s var(--ease) 1.05s forwards; }
+.download .soon { margin-top: 32px; }
