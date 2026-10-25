@@ -39,5 +39,6 @@ writeFileSync(notesFile, notes.split('\n').slice(1).join('\n').trim() + '\n');
 if (dry) { console.log(`Dry run: ${zip} is ready; nothing was tagged or published.`); process.exit(0); }
 run('git', ['tag', tag]);
 run('git', ['push', 'origin', 'main', tag]);
-run('gh', ['release', 'create', tag, zip, sums, '--title', `TabbyDeck ${version}`, '--notes-file', notesFile, '--verify-tag']);
+// Not through cmd.exe: it would split the title at its space.
+run('gh', ['release', 'create', tag, zip, sums, '--title', `TabbyDeck ${version}`, '--notes-file', notesFile, '--verify-tag'], { shell: false });
 console.log(`Released ${tag}`);
