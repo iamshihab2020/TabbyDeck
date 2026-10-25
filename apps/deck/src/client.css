@@ -185,3 +185,72 @@ input { -webkit-user-select: text; user-select: text; }
 .pad-btn:active { background: var(--accent-soft); }
 .pad-type { display: flex; margin-top: 12px; }
 .pad-type .input { flex: 1; min-width: 0; margin: 0 10px 0 0; }
+
+/* The cat's floor: a strip under the keys, so the cat never covers one. The safe-area pad moves down here. */
+.deck.with-cat .deck-area { padding-bottom: 4px; }
+/* Above the keys: a tall hat may reach over the bottom row. Only the cat's own box takes touches, so a key under a hat still presses. */
+.cat-floor { position: relative; z-index: 2; flex: none; margin: 0 12px calc(4px + env(safe-area-inset-bottom)); }
+.tb-cat { position: absolute; bottom: 0; padding: 0; border: 0; background: none; cursor: pointer; transition-property: left; transition-timing-function: linear; -webkit-tap-highlight-color: transparent; }
+.tb-cat svg { display: block; overflow: visible; pointer-events: none; }
+.cat-body { position: absolute; left: 0; bottom: 0; display: block; transform-origin: 50% 100%; }
+.cat-body.hop { animation: cat-hop 520ms var(--ease-spring); }
+@keyframes cat-hop { 30% { margin-bottom: 0.9em; } 60% { margin-bottom: 0; } }
+.tb-cat.stretch .cat-body svg { animation: cat-stretch 900ms var(--ease); transform-origin: 50% 100%; }
+@keyframes cat-stretch { 0% { transform: scale(1.18, 0.7); } 55% { transform: scale(0.94, 1.08); } 100% { transform: none; } }
+/* Sitting: the tail swishes and the eyes blink now and then. Walking: the legs swing. Asleep: it breathes. */
+.cat-tail { transform-origin: 52px 47px; animation: cat-tail 2.6s ease-in-out infinite alternate; }
+@keyframes cat-tail { from { transform: rotate(-9deg); } to { transform: rotate(10deg); } }
+.cat-eyes { transform-origin: 40px 19px; animation: cat-blink 5.5s infinite; }
+@keyframes cat-blink { 0%, 93%, 100% { transform: none; } 95% { transform: scaleY(0.1); } }
+.cat-leg { transform-box: fill-box; transform-origin: 50% 0; animation: cat-leg 300ms ease-in-out infinite alternate; }
+.cat-leg.b { animation-direction: alternate-reverse; }
+@keyframes cat-leg { from { transform: rotate(-22deg); } to { transform: rotate(22deg); } }
+.cat-steam { animation: cat-steam 2.2s ease-in-out infinite; }
+@keyframes cat-steam { 0%, 100% { opacity: 0.15; transform: translateY(1px); } 50% { opacity: 0.8; transform: translateY(-1.5px); } }
+.cat-breath { transform-origin: 40px 54px; animation: cat-breath 3.2s ease-in-out infinite; }
+@keyframes cat-breath { 50% { transform: scale(1.025, 1.05); } }
+.cat-z { position: absolute; left: 58%; top: 0; font-size: 1em; font-weight: 700; color: var(--muted); pointer-events: none; animation: cat-z 2.4s ease-out infinite; }
+@keyframes cat-z { from { transform: translate(0, 8px) scale(0.7); opacity: 0; } 30% { opacity: 1; } to { transform: translate(10px, -14px) scale(1.15); opacity: 0; } }
+.cat-heart { position: absolute; left: 50%; top: -0.5em; margin-left: -4em; width: 8em; text-align: center; white-space: nowrap; font-size: 0.85em; font-weight: 700; color: #f87171; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); pointer-events: none; animation: cat-heart 900ms ease-out forwards; }
+@keyframes cat-heart { from { transform: translateY(6px) scale(0.6); opacity: 0; } 30% { opacity: 1; } to { transform: translateY(-22px) scale(1.1); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .tb-cat { transition-duration: 0ms !important; }
+  .cat-tail, .cat-eyes, .cat-leg, .cat-breath, .cat-steam, .cat-z, .cat-body.hop, .tb-cat.stretch .cat-body svg { animation: none; }
+}
+.cat-name { margin-top: 10px; }
+
+/* "Your week": a bar per day (the busiest one lit), then three facts. */
+.week-btn { width: 100%; margin-top: 14px; justify-content: center; }
+.week-head { margin: 6px 0 14px; font-size: var(--fs-4); font-weight: 700; line-height: 1.3; }
+.week-bars { display: flex; align-items: flex-end; height: 120px; padding: 0 2px; }
+.week-day { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+.week-day + .week-day { margin-left: 8px; }
+.week-bar { width: 100%; min-height: 4px; border-radius: 6px 6px 3px 3px; background: var(--surface-3); animation: week-grow 600ms var(--ease) backwards; transform-origin: 50% 100%; }
+.week-day:nth-child(2) .week-bar { animation-delay: 40ms; } .week-day:nth-child(3) .week-bar { animation-delay: 80ms; } .week-day:nth-child(4) .week-bar { animation-delay: 120ms; }
+.week-day:nth-child(5) .week-bar { animation-delay: 160ms; } .week-day:nth-child(6) .week-bar { animation-delay: 200ms; } .week-day:nth-child(7) .week-bar { animation-delay: 240ms; }
+@keyframes week-grow { from { transform: scaleY(0); } }
+.week-day.top .week-bar { background: var(--accent); }
+.week-n { margin-bottom: 4px; font-size: var(--fs-2); font-variant-numeric: tabular-nums; color: var(--muted); }
+.week-day.top .week-n { color: var(--text); font-weight: 700; }
+.week-label { margin-top: 6px; font-size: var(--fs-2); color: var(--muted); }
+.week-facts { margin: 16px 0 6px; padding: 0; list-style: none; }
+.week-facts li { display: flex; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); font-size: var(--fs-3); }
+.week-facts li + li { margin-top: 6px; }
+.week-facts svg { flex: none; margin-right: 10px; color: var(--accent); }
+@media (prefers-reduced-motion: reduce) { .week-bar { animation: none; } }
+
+/* A badge just earned: a card that drops in at the top, glows once and leaves by itself. Touches go through it. */
+.badge-pop { position: fixed; z-index: 35; top: calc(12px + env(safe-area-inset-top)); left: 50%; width: 340px; max-width: calc(100% - 32px); margin-left: -170px;
+  display: flex; align-items: center; padding: 12px 16px 12px 12px; border-radius: 18px; background: var(--surface-2); box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(245, 165, 36, 0.35);
+  pointer-events: none; animation: badge-in 4.5s var(--ease) forwards; }
+@media (max-width: 372px) { .badge-pop { left: 16px; margin-left: 0; } }
+.badge-pop .tb-badge-art { flex: none; animation: badge-spin 900ms var(--ease-spring) 200ms backwards; }
+.badge-text { display: flex; flex-direction: column; margin-left: 12px; min-width: 0; font-size: var(--fs-2); color: var(--muted); }
+.badge-text b { font-size: var(--fs-4); color: var(--text); }
+.badge-new { color: var(--accent); font-weight: 700; }
+@keyframes badge-in { 0% { transform: translateY(-140%); opacity: 0; } 8% { transform: translateY(6px); opacity: 1; } 12% { transform: none; } 88% { transform: none; opacity: 1; } 100% { transform: translateY(-140%); opacity: 0; } }
+@keyframes badge-spin { from { transform: scale(0.4) rotate(-40deg); } }
+@media (prefers-reduced-motion: reduce) { .badge-pop { animation: none; } .badge-pop .tb-badge-art { animation: none; } }
+.week-badges { display: flex; flex-wrap: wrap; margin: 4px 0 6px; }
+.week-badge { display: flex; align-items: center; margin: 4px 8px 4px 0; padding: 4px 10px 4px 4px; border-radius: 999px; background: var(--surface-2); font-size: var(--fs-2); }
+.week-badge .tb-badge-art { margin-right: 6px; }

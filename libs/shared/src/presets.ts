@@ -38,6 +38,7 @@ export const PRESETS: Preset[] = [
 
   { id: 'brightness-down', group: 'Display', label: 'Brightness −', icon: 'sun-dim', bg: KEY, steps: [{ action: 'display.brightnessStep', params: { delta: -10 } }] },
   { id: 'brightness-panel', group: 'Display', label: 'Brightness', icon: 'monitor', bg: KEY, fg: '#fcd34d', steps: [{ action: 'display.brightnessPanel', params: {} }] },
+  { id: 'screens-off', group: 'Display', label: 'Screen off', icon: 'eye-slash', bg: '#1a1f2e', fg: '#93c5fd', steps: [{ action: 'display.screensOff', params: { screen: 'all' } }], long: [{ action: 'display.screensOff', params: { screen: 'all' } }] },
   { id: 'brightness-up', group: 'Display', label: 'Brightness +', icon: 'sun', bg: KEY, fg: '#fcd34d', steps: [{ action: 'display.brightnessStep', params: { delta: 10 } }] },
   { id: 'energy-saver', group: 'Display', label: 'Power saver', icon: 'leaf', bg: '#16302b', fg: '#86efac', steps: [{ action: 'system.energySaver', params: { mode: 'toggle' } }] },
   { id: 'dnd', group: 'Windows', label: 'Do not disturb', icon: 'bell', bg: '#2b2440', fg: '#c4b5fd', steps: [{ action: 'system.dnd', params: { mode: 'toggle' } }] },
@@ -84,7 +85,8 @@ export const PRESETS: Preset[] = [
   // The window in front (no window named): snap it, or send it to the other screen.
   { id: 'snap-left', group: 'Windows', label: 'Left half', icon: 'sidebar', bg: KEY, steps: [{ action: 'system.placeWindow', params: { window: '', place: 'left', wait: 0 } }] },
   { id: 'snap-right', group: 'Windows', label: 'Right half', icon: 'columns', bg: KEY, steps: [{ action: 'system.placeWindow', params: { window: '', place: 'right', wait: 0 } }] },
-  { id: 'maximize', group: 'Windows', label: 'Maximize', icon: 'corners-out', bg: KEY, steps: [{ action: 'system.placeWindow', params: { window: '', place: 'maximize', wait: 0 } }] },
+  // Press to maximize the window in front, hold to minimize it; the next press brings that window back maximized.
+  { id: 'maximize', group: 'Windows', label: 'Max / Min', icon: 'corners-out', bg: KEY, steps: [{ action: 'system.placeWindow', params: { window: '', place: 'maximize', wait: 0 } }], long: [{ action: 'system.placeWindow', params: { window: '', place: 'minimize', wait: 0 } }] },
   { id: 'next-screen', group: 'Windows', label: 'Other screen', icon: 'arrow-square-out', bg: KEY, steps: [{ action: 'system.placeWindow', params: { window: '', place: 'next-screen', wait: 0 } }] },
   { id: 'clipboard-history', group: 'Windows', label: 'Clipboard', icon: 'clipboard-text', bg: KEY, steps: hotkey('Win+V') },
   { id: 'emoji', group: 'Windows', label: 'Emoji', icon: 'smiley', bg: KEY, steps: hotkey('Win+.') },

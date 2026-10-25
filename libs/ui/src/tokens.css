@@ -199,3 +199,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .tiles-outline .tb-tile.tb-pressed::before { opacity: 0; }
 
 @media (prefers-reduced-motion: reduce) { .tb-tile, .tb-tile.tb-pressed, .tb-tile::before { transition: none; } .tb-ripple, .tb-led { animation: none; } .tb-ripple { display: none; } }
+
+/* Badge medals keep their size and stay round, beside any amount of text. */
+.tb-badge-art { flex: none; }

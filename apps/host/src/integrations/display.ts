@@ -56,6 +56,11 @@ export function registerDisplay(registry: ActionRegistry, deps: { native: Native
     run: async p => deps.native.system.setDnd(resolve(p.mode, await deps.native.system.getDnd())),
   });
   registry.register({
+    id: 'display.screensOff', name: 'Screens off', group: 'Display', description: 'Turns the screens dark while the PC keeps running, for long jobs. All screens: the PC stays awake until you use its mouse or keyboard. One monitor: press again to turn it back on.',
+    schema: { screen: SCREEN },
+    run: p => display.screensOff(String(p.screen ?? 'all')),
+  });
+  registry.register({
     id: 'display.nightLight', name: 'Night light', group: 'Display', description: 'Warmer colours that are easier on the eyes at night',
     schema: { mode: MODE },
     run: async p => display.setNightLight(resolve(p.mode, await display.getNightLight())),

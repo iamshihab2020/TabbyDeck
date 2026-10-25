@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import type { NativeDisplay, ProjectMode, ScreenInfo } from '../types.ts';
 import type { PowerShellHost } from './ps.ts';
+import { win32 } from './win32.ts';
 
 const NO_BRIGHTNESS = 'This screen does not let Windows change its brightness';
 
@@ -22,8 +23,9 @@ public static class Screens {
   [DllImport("dxva2.dll")] static extern bool GetVCPFeatureAndVCPFeatureReply(IntPtr h, byte c, IntPtr t, out uint cur, out uint max);
   [DllImport("dxva2.dll")] static extern bool SetVCPFeature(IntPtr h, byte c, uint v);
   [DllImport("dxva2.dll")] static extern bool DestroyPhysicalMonitors(uint n, PM[] a);
-  // One line per screen: code, left edge, primary, DDC level (-1 if the monitor will not say). Set(code, pct) when given.
-  public static string Run(string setId, int pct) {
+  // One line per screen: code, left edge, primary, DDC level (-1 if the monitor will not say). Set(code, pct) when given;
+  // with power, the monitor's power instead (VCP 0xD6: 1 on, 4 off): off when on, on when off.
+  public static string Run(string setId, int pct, bool power) {
     var sb = new StringBuilder(); var seen = new Dictionary<string, int>(); string result = "missing";
     EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (m, dc, r, x) => {
       var i = new MI(); i.size = Marshal.SizeOf(i); GetMonitorInfo(m, ref i);
@@ -33,7 +35,8 @@ public static class Screens {
       uint n; GetNumberOfPhysicalMonitorsFromHMONITOR(m, out n); var a = new PM[n]; int level = -1;
       if (n > 0 && GetPhysicalMonitorsFromHMONITOR(m, n, a)) {
         uint cur, max;
-        if (!string.IsNullOrEmpty(setId) && setId == code) result = GetVCPFeatureAndVCPFeatureReply(a[0].h, 0x10, IntPtr.Zero, out cur, out max) && max > 0 && SetVCPFeature(a[0].h, 0x10, (uint)Math.Round(pct * max / 100.0)) ? "ok" : "none";
+        if (power && setId == code) result = GetVCPFeatureAndVCPFeatureReply(a[0].h, 0xD6, IntPtr.Zero, out cur, out max) && SetVCPFeature(a[0].h, 0xD6, cur == 1 ? 4u : 1u) ? "ok" : "none";
+        else if (!string.IsNullOrEmpty(setId) && setId == code) result = GetVCPFeatureAndVCPFeatureReply(a[0].h, 0x10, IntPtr.Zero, out cur, out max) && max > 0 && SetVCPFeature(a[0].h, 0x10, (uint)Math.Round(pct * max / 100.0)) ? "ok" : "none";
         else if (string.IsNullOrEmpty(setId) && GetVCPFeatureAndVCPFeatureReply(a[0].h, 0x10, IntPtr.Zero, out cur, out max) && max > 0) level = (int)Math.Round(cur * 100.0 / max);
         DestroyPhysicalMonitors(n, a);
       }
@@ -49,7 +52,7 @@ const WMI_LEVELS = `$wmi = @{}; try { Get-CimInstance -Namespace root/WMI -Class
 const LIST = [
   WMI_LEVELS,
   `$names = @{}; try { Get-CimInstance -Namespace root/WMI -ClassName WmiMonitorID -ErrorAction Stop | % { $names[${CODE_OF}] = -join [char[]]($_.UserFriendlyName | ? { $_ }) } } catch {}`,
-  '$list = foreach ($l in ([Screens]::Run($null, 0) -split "`n" | ? { $_ })) { $c, $x, $p, $d = $l -split "`t"; $base = $c.Split("#")[0]',
+  '$list = foreach ($l in ([Screens]::Run($null, 0, $false) -split "`n" | ? { $_ })) { $c, $x, $p, $d = $l -split "`t"; $base = $c.Split("#")[0]',
   '  if ($wmi.ContainsKey($base)) { [pscustomobject]@{ id = $c; name = "Laptop screen"; brightness = $wmi[$base]; x = [int]$x } }',
   '  elseif ([int]$d -ge 0) { $nm = $names[$base]; if (-not $nm) { $nm = "Monitor" }; [pscustomobject]@{ id = $c; name = $nm; brightness = [int]$d; x = [int]$x } } }',
   '@($list | Sort-Object x | Select-Object id, name, brightness) | ConvertTo-Json -Compress',
@@ -57,7 +60,7 @@ const LIST = [
 const SET = [
   WMI_LEVELS,
   `if ($wmi.ContainsKey($id.Split('#')[0])) { try { Get-CimInstance -Namespace root/WMI -ClassName WmiMonitorBrightnessMethods -ErrorAction Stop | Invoke-CimMethod -MethodName WmiSetBrightness -Arguments @{ Timeout = [uint32]0; Brightness = [byte]$pct } | Out-Null; "ok" } catch { "none" } }`,
-  'else { [Screens]::Run($id, $pct) }',
+  'else { [Screens]::Run($id, $pct, $false) }',
 ].join('\n');
 
 // Night light has no public API. Its state lives in a CloudStore blob: byte 18 is 0x15 when on and 0x13 when off,
@@ -67,6 +70,22 @@ const NIGHT_KEY = "'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\CloudSt
 const NIGHT_READ = `$d = [byte[]](Get-ItemProperty ${NIGHT_KEY} -ErrorAction Stop).Data`;
 
 // DisplaySwitch.exe is what Win+P runs; it returns at once and Windows rearranges the screens a moment later.
+// Screens off for a long job: Windows' own "turn off the display" message, plus a request that keeps the PC from
+// sleeping (Modern Standby pauses desktop apps once it sleeps). The request ends when the PC's mouse or keyboard is used.
+const ES_CONTINUOUS = 0x80000000, ES_SYSTEM_REQUIRED = 0x1;
+let awake: ReturnType<typeof setInterval> | undefined;
+const release = () => { if (!awake) return false; clearInterval(awake); awake = undefined; win32().SetThreadExecutionState(ES_CONTINUOUS >>> 0); return true; };
+function screensOffAwake() {
+  const w = win32(), since = w.GetTickCount();
+  w.SetThreadExecutionState((ES_CONTINUOUS | ES_SYSTEM_REQUIRED) >>> 0);
+  clearInterval(awake);
+  awake = setInterval(() => {
+    const li = { cbSize: 8, dwTime: 0 };
+    if (w.GetLastInputInfo(li) && ((li.dwTime - since) >>> 0) > 2000 && ((li.dwTime - since) >>> 0) < 0x80000000) release();
+  }, 5000);
+  w.PostMessageW(0xffff, 0x0112, 0xf170, 2); // HWND_BROADCAST, WM_SYSCOMMAND, SC_MONITORPOWER, off
+}
+
 const SWITCH: Record<ProjectMode, string> = { extend: '/extend', duplicate: '/clone', 'pc-only': '/internal', 'second-only': '/external' };
 
 export function createWinDisplay(ps: PowerShellHost): NativeDisplay {
@@ -88,6 +107,15 @@ ${SET}`, 8000, SCREENS_PRELUDE)).trim();
     project: mode => new Promise((resolve, reject) => {
       execFile('DisplaySwitch.exe', [SWITCH[mode]], { windowsHide: true, timeout: 10000 }, err => err ? reject(new Error(`Could not switch screens: ${err.message}`)) : resolve());
     }),
+    screensBack: release,
+    screensDark: () => !!awake,
+    async screensOff(id) {
+      if (id === 'all') return screensOffAwake();
+      if (!/^[A-Za-z0-9#]+$/.test(id)) throw new Error('Unknown screen');
+      const out = (await ps.call(`[Screens]::Run('${id}', 0, $true)`, 8000, SCREENS_PRELUDE)).trim();
+      if (out === 'missing') throw new Error('That screen is not connected');
+      if (out !== 'ok') throw new Error('Windows cannot turn off only this screen. Choose All screens, or use Screens > second-only to turn off the laptop screen.');
+    },
     async getNightLight() {
       return (await ps.call(`${NIGHT_READ}; $d[18] -eq 0x15`)).trim() === 'True';
     },

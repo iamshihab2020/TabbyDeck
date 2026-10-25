@@ -6,6 +6,7 @@ const GW_OWNER = 4, GWL_EXSTYLE = -20, WS_EX_TOOLWINDOW = 0x80, DWMWA_EXTENDED_F
 const PROCESS_QUERY_LIMITED_INFORMATION = 0x1000, MONITOR_DEFAULTTONEAREST = 2;
 const SW_MAXIMIZE = 3, SW_MINIMIZE = 6, SW_RESTORE = 9, SWP_NOZORDER = 0x4, SWP_NOACTIVATE = 0x10;
 const PER_MONITOR_AWARE_V2 = -4;
+const VK_MENU = 0x12, KEYEVENTF_KEYUP = 0x2;
 
 interface Rect { left: number; top: number; right: number; bottom: number }
 
@@ -102,15 +103,27 @@ export function placeRect(work: Rect, place: 'left' | 'right' | 'top' | 'bottom'
   return { ...work, top: midY };
 }
 
+// The window a "window in front" minimize just put away. Once minimized it is no longer in front, so the next
+// "window in front" maximize brings this one back instead of maximizing whatever is in front now.
+let putAway: unknown = null;
+
 /** Place the first window that matches, or the window in front when match is empty. False when no window matches (yet). */
 export function placeWindow(match: string, place: WindowPlace): boolean {
   const w = win32();
   // Work in real pixels: without this, Windows scales the numbers for windows on a zoomed (125 %, 150 %) screen.
   const prev = w.SetThreadDpiAwarenessContext(PER_MONITOR_AWARE_V2);
   try {
-    const h = match.trim() ? findWindow(match) : w.GetForegroundWindow(); if (!h) return false;
-    if (place === 'minimize') { w.ShowWindow(h, SW_MINIMIZE); return true; }
-    if (place === 'maximize') { if (w.IsIconic(h)) w.ShowWindow(h, SW_RESTORE); w.ShowWindow(h, SW_MAXIMIZE); return true; }
+    const front = !match.trim(), back = front && place === 'maximize' && putAway && w.IsWindow(putAway) && w.IsIconic(putAway);
+    const h = back ? putAway : front ? w.GetForegroundWindow() : findWindow(match); if (!h) return false;
+    if (place === 'minimize') { w.ShowWindow(h, SW_MINIMIZE); if (front) putAway = h; return true; }
+    if (place === 'maximize') {
+      if (front) putAway = null;
+      if (w.IsIconic(h)) w.ShowWindow(h, SW_RESTORE);
+      w.ShowWindow(h, SW_MAXIMIZE);
+      // A background process may only take focus right after input; a lone Alt tap satisfies that rule.
+      if (back) { w.keybd_event(VK_MENU, 0, 0, 0); w.keybd_event(VK_MENU, 0, KEYEVENTF_KEYUP, 0); w.SetForegroundWindow(h); }
+      return true;
+    }
     const wasMax = w.IsZoomed(h);
     if (wasMax || w.IsIconic(h)) w.ShowWindow(h, SW_RESTORE);
     if (place === 'restore') return true;

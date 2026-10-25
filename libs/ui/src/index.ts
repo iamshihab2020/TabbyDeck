@@ -3,3 +3,4 @@ export { Icon, SpriteDefs, ICON_NAMES, FALLBACK_ICON } from './Icon.tsx';
 export { Tile, type TileProps } from './Tile.tsx';
 export { Grid, useCellSize, type GridProps } from './Grid.tsx';
 export { Mark } from './Mark.tsx';
+export { BadgeArt } from './Badge.tsx';

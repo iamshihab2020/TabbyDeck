@@ -125,6 +125,9 @@ export const SettingsSchema = z.object({
   openEditorOnStart: z.boolean(),
   /** The first-run guide was finished or skipped. */
   guideDone: z.boolean().default(false),
+  /** The cat on every deck (Customize page): shown, and its name. */
+  catOn: z.boolean().default(true),
+  catName: z.string().trim().max(20).default('Tabby'),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 
@@ -142,7 +145,7 @@ export const DEFAULT_LOOK: Look = {
 };
 
 export const DEFAULT_SETTINGS: Settings = {
-  schemaVersion: 1, port: 8191, editorPort: 8192, bindAddress: '', autoStart: false, theme: 'dark', openEditorOnStart: true, guideDone: false,
+  schemaVersion: 1, port: 8191, editorPort: 8192, bindAddress: '', autoStart: false, theme: 'dark', openEditorOnStart: true, guideDone: false, catOn: true, catName: 'Tabby',
 };
 
 /** A new profile file with an empty root folder. */

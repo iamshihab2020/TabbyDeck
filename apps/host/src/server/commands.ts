@@ -58,8 +58,10 @@ const ARGS = {
   'apps.icon': z.object({ id: z.string().min(1).max(512) }),
   'windows.list': z.unknown(),
   'audio.outputs': z.unknown(),
+  'browsers.list': z.unknown(),
   'profile.template': z.object({ id: z.string().max(32) }),
   'network.check': z.unknown(),
+  'stats.get': z.object({ days: z.number().int().min(1).max(60) }),
 } as const;
 
 type Args<K extends keyof typeof ARGS> = z.infer<(typeof ARGS)[K]>;
@@ -127,11 +129,13 @@ const handlers: { [K in keyof typeof ARGS]: (a: Args<K>, ctx: CommandContext) =>
     return host.native.system.windows().filter(w => w.exe && !/^tabbydeck/.test(w.exe) && !seen.has(w.exe) && seen.add(w.exe));
   },
   'audio.outputs': (_a, { host }) => host.native.audio.outputs(),
+  'browsers.list': async (_a, { host }) => (await host.native.system.browserProfiles()).map(({ id, browser, name }) => ({ id, browser, name })),
   // What could stop phones connecting, from this PC's side, and whether any phone has reached it. Reads only.
   'network.check': async (_a, { host }) => ({
     ...(await host.native.system.networkCheck(process.execPath).catch(() => ({ network: '', category: '', firewall: 'unknown' as const, vpn: [] }))),
     lastVisit: host.lastVisit, port: host.lanPort,
   }),
+  'stats.get': (a, { host }) => host.stats.summary(a.days),
   // A ready-made deck as a new profile. Its app keys open the app found by name in the Start menu, with its icon; an
   // app not on this PC keeps its usual id (the key shows once it is installed), or is left out when it has none.
   'profile.template': async (a, { host }) => {

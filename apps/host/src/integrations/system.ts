@@ -42,6 +42,17 @@ export function registerSystem(registry: ActionRegistry, deps: { native: Native 
     },
   });
   registry.register({
+    id: 'system.browser', name: 'Open browser profile', group: 'System', description: 'Open Chrome, Edge or Brave in one of its profiles, optionally on a website',
+    schema: { profile: { type: 'browserProfile', title: 'Browser profile', required: true }, url: { type: 'string', title: 'Website' } },
+    run: async p => {
+      const url = String(p.url ?? '').trim();
+      if (url && !/^https?:\/\//i.test(url)) throw new Error('The website must start with http:// or https://');
+      const found = (await system.browserProfiles()).find(b => b.id === p.profile);
+      if (!found) throw new Error('That browser profile is not on this PC any more');
+      await system.launch(found.exe, [`--profile-directory=${found.dir}`, ...(url ? [url] : [])]);
+    },
+  });
+  registry.register({
     id: 'system.run', name: 'Run command', group: 'System', danger: true, description: 'Runs a command line on this computer',
     schema: { command: { type: 'text', title: 'Command', required: true }, timeout: { type: 'number', title: 'Time limit (seconds)', default: 30, min: 1, max: 600 } },
     run: async p => {

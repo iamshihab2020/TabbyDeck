@@ -23,12 +23,12 @@ export function buildDeckView(store: Store, profileId: string, folderId: string,
   return {
     profileId: p.id, profileName: p.name,
     profiles: store.profiles().map(x => ({ id: x.profile.id, name: x.profile.name })),
-    folderId, path, cols: p.cols, rows: Math.max(1, packed.rows), gap: p.gap, bg: p.bg, ...(p.bgImage ? { bgImage: p.bgImage } : {}), ...(p.tiles ? { tiles: p.tiles } : {}),
+    folderId, path, cols: p.cols, rows: Math.max(1, packed.rows), gap: p.gap, bg: p.bg, ...(p.bgImage ? { bgImage: p.bgImage } : {}), ...(p.tiles ? { tiles: p.tiles } : {}), cat: { on: store.settings().catOn !== false, name: store.settings().catName || 'Tabby' },
     widgets: packed.widgets.map(w => {
-      const s = statefulAction(w), { look: liveLook, ...live } = liveOf(w), confirm = confirmText(w), repeat = (levelOf(w)?.dir ?? 0) !== 0, panel = panelOf(w);
+      const s = statefulAction(w), { look: liveLook, ...live } = liveOf(w), confirm = confirmText(w), repeat = (levelOf(w)?.dir ?? 0) !== 0, panel = panelOf(w), hold = w.config.kind === 'button' && !!w.config.triggers.long?.length;
       return {
         id: w.id, kind: w.config.kind, x: w.x, y: w.y, w: w.w, h: w.h, look: { ...structuredClone(w.look), ...liveLook },
-        ...(s ? { alt: { ...STATEFUL[s] } } : {}), ...live, ...(confirm ? { confirm } : {}), ...(repeat ? { repeat } : {}), ...(panel ? { panel } : {}),
+        ...(s ? { alt: { ...STATEFUL[s] } } : {}), ...live, ...(confirm ? { confirm } : {}), ...(repeat ? { repeat } : {}), ...(panel ? { panel } : {}), ...(hold ? { hold } : {}),
       };
     }),
   };

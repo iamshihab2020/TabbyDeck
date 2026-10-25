@@ -18,7 +18,7 @@ afterEach(async () => { await host.close(); rmSync(dir, { recursive: true, force
 async function pairedClient() {
   const ws = new WebSocket(`ws://127.0.0.1:${host.lanPort}/ws`);
   const inbox: HostMsg[] = []; const waiters: ((m: HostMsg) => void)[] = [];
-  ws.on('message', d => { const m = JSON.parse(String(d)); const w = waiters.shift(); if (w) w(m); else inbox.push(m); });
+  ws.on('message', d => { const m = JSON.parse(String(d)); if (m.t === 'mood') return; /* the cat's outfit; not what these tests read */ const w = waiters.shift(); if (w) w(m); else inbox.push(m); });
   await new Promise(r => ws.on('open', r));
   const next = (ms = 1500) => new Promise<HostMsg>((res, rej) => { const m = inbox.shift(); if (m) return res(m); const t = setTimeout(() => rej(new Error('no message')), ms); waiters.push(x => { clearTimeout(t); res(x); }); });
   ws.send(JSON.stringify({ t: 'hello', deviceId: 'dev1', name: 'Phone', clientVersion: '0.1.0', caps: { vibrate: true, wakeLock: false } }));
@@ -59,6 +59,26 @@ describe('press to action', () => {
     await next();
     ws.send(JSON.stringify({ t: 'press', widgetId: w.id, kind: 'press' }));
     expect(await next()).toMatchObject({ t: 'notify', text: 'Hello', vibrate: true });
+    ws.close();
+  });
+
+  it('after Screen off, the next other deck key wakes the screens; Screen off itself does not', async () => {
+    const { ws, deck } = await pairedClient();
+    if (deck.t !== 'deck') return;
+    const native = host.native as FakeNative;
+    const w = host.store.profiles()[0].widgets[0];
+    const moves = () => native.calls.filter(c => c.method === 'mouseMove').length;
+    const press = async (id: string) => { ws.send(JSON.stringify({ t: 'press', widgetId: id, kind: 'press' })); await new Promise(r => setTimeout(r, 60)); };
+    host.store.updateWidget(w.id, { config: { kind: 'button', policy: 'ignore', triggers: { press: [{ id: 's1', action: 'display.screensOff', params: { screen: 'all' } }] } } });
+    await press(w.id); await press(w.id);
+    expect(native.screensDark).toBe(true);
+    expect(moves()).toBe(0);
+    host.store.updateWidget(w.id, { config: { kind: 'button', policy: 'ignore', triggers: { press: [{ id: 's1', action: 'deck.vibrate', params: {} }] } } });
+    await press(w.id);
+    expect(native.screensDark).toBe(false);
+    expect(moves()).toBe(1);
+    await press(w.id); // screens are already on: no nudge
+    expect(moves()).toBe(1);
     ws.close();
   });
 

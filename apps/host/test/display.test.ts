@@ -31,6 +31,13 @@ describe('display actions', () => {
     await run('display.project', { mode: 'extend' });
     expect(native.calls.filter(c => c.method === 'project').map(c => c.args[0])).toEqual(['duplicate', 'extend']);
   });
+  it('screens off: every screen, or one that is connected', async () => {
+    const { native, run } = setup();
+    await run('display.screensOff', { screen: 'all' });
+    await run('display.screensOff', { screen: 'MON1' });
+    expect(native.calls.filter(c => c.method === 'screensOff').map(c => c.args[0])).toEqual(['all', 'MON1']);
+    await expect(run('display.screensOff', { screen: 'GONE' })).rejects.toThrow(/not connected/);
+  });
   it('bluetooth toggles and can be set on or off', async () => {
     const { native, run } = setup();
     await run('system.bluetooth', { mode: 'toggle' });

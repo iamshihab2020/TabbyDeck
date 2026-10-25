@@ -1,4 +1,4 @@
-import type { AppSound, AudioOutput, BtDevice } from '@tabbydeck/shared';
+import type { AppSound, AudioOutput, BrowserProfile, BtDevice } from '@tabbydeck/shared';
 
 export type { AppSound, AudioOutput };
 
@@ -59,6 +59,8 @@ export interface NativeSystem {
   /** Whether an app is playing media now (what the Play / Pause key would pause). */
   mediaPlaying(): Promise<boolean>;
   listApps(): Promise<{ id: string; name: string }[]>;
+  /** The profiles of Chrome, Edge and Brave on this PC, with the program that opens each. */
+  browserProfiles(): Promise<(BrowserProfile & { exe: string; dir: string })[]>;
   /**
    * What on this PC could stop a phone reaching TabbyDeck: the Wi-Fi it is on (its name and whether Windows calls it
    * Public or Private), whether the firewall lets this program take connections there, and VPN adapters that are on.
@@ -102,6 +104,12 @@ export interface NativeDisplay {
   setNightLight(on: boolean): Promise<void>;
   /** Same choices as Win+P. */
   project(mode: ProjectMode): Promise<void>;
+  /** 'all': every screen goes dark and the PC stays awake until someone uses its mouse or keyboard. One monitor: off, or back on if it is off (over the cable, when the monitor allows it). */
+  screensOff(id: string): Promise<void>;
+  /** True when the screens were turned off by screensOff('all') and nobody has come back yet; ends the keep-awake. */
+  screensBack(): boolean;
+  /** Whether screensOff('all') is still in effect. */
+  screensDark(): boolean;
 }
 
 export interface ScreenInfo { id: string; name: string; brightness: number }

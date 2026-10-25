@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.3.0 (2026-10-25)
+
+### Ready-made decks
+- The Developer deck has a Claude Code section: VS Code + Claude opens your repo in VS Code and starts Claude in its terminal (set the repo folder under the key's Arguments), and keys for Resume, Mode, Compact, Clear, Usage, Context, Review, Model, Opus, Sonnet, Effort, Plan, Paste image (a screenshot into the Claude prompt), Stop Claude and Yes / Enter. They type into the Claude prompt in front. The deck is 8 by 5, one job per row: apps, two rows of Claude, VS Code, and windows with CPU, memory and focus. The debugger, Undo and Redo keys are gone. To get it on a PC that already has the Developer deck, add it again from New profile.
+
+### Keys
+- Open browser profile: a key opens Chrome, Edge or Brave in the profile you choose, by the name the browser shows, and on a website if you give one.
+
+### On the phone
+- Screen off key: turns the screens dark while the PC keeps running, for long jobs. A tap warns first (keep it plugged in; closing the lid still sleeps it); holding turns every screen off at once. The key lights up while the screens are off. The PC stays awake until you come back: any key or mouse move on the PC, or any other deck key, turns the screens on again. Set the key to one monitor to turn only that one off, and on again with the next press, when the monitor allows it.
+- Max / Min key: press to maximize the window in front, hold to minimize it, and press again to bring that same window back maximized.
+- A key with its own hold action now does only that when held, instead of a press and then the hold.
+- A cat lives under the keys. It naps when the deck sits unused, stretches awake at the next tap, runs to where you touch empty space, and shows its name when you tap it.
+- It dresses for the day: a scarf in winter, a Santa hat at Christmas, a party hat at New Year, a witch hat at Halloween, sunglasses in summer, a coffee mug in the morning and a nightcap late at night. And for what your PC is doing: headphones while music plays, a headset in a call, glasses during a Pomodoro focus, a hard hat while a timer runs.
+- Badges: Early bird for a key before 7 am, Night owl after 2 am, Speed run for 50 presses in a minute, and Zen for two hours of Do not disturb. When you earn one, every phone and tablet shows it for a moment, without getting in the way of a press; each can be earned once a day. They also appear on Your week and the Stats page.
+- Your week: in the deck's settings, a card shows the key you pressed most, a bar for each day, your busiest day and the app you spent most time in.
+
+### Editor
+- The TabbyDeck window on the PC opens maximized, filling the screen.
+- Customize: a new page for how TabbyDeck looks and feels. It holds the key styles (it replaces the Themes page) and the cat: turn it on or off and give it a name, for every phone and tablet.
+- Stats: a new page with how you use your decks over the last 7 or 30 days: presses per day, every key and every app by use. Counted on this PC only; nothing is sent anywhere.
+
 ## 0.2.0 (2026-10-23)
 
 ### Ready-made decks

@@ -38,6 +38,8 @@ export class Clients extends EventEmitter<ClientsEvents> {
   onBrightness: (c: ClientSession, screen: string, percent: number) => void = () => {};
   onVolume: (c: ClientSession, m: { percent?: number; mute?: boolean; app?: string; output?: string }) => void = () => {};
   onBluetooth: (c: ClientSession, m: { power?: boolean; device?: string; connect?: boolean }) => void = () => {};
+  /** The last seven days, for the phone's "Your week" card. */
+  statsOf: () => import('@tabbydeck/shared').StatsSummary | null = () => null;
   onPointer: (c: ClientSession, m: Extract<import('@tabbydeck/shared').ClientMsg, { t: 'pointer' }>) => void = () => {};
 
   constructor(opts: { store: Store; pairing: Pairing; sessions: Sessions; log: Logger; onPress: PressFn }) {
@@ -47,6 +49,8 @@ export class Clients extends EventEmitter<ClientsEvents> {
     this.store.on('profile', id => this.broadcastDeckFor(id));
     this.store.on('profileDeleted', id => { for (const c of this.conns) if (c.authed && c.profileId === id) this.goToProfile(c, this.firstProfileId()); });
     this.store.on('devices', () => this.enforceDevices());
+    // Settings the decks show (the cat): every connected deck gets its view again.
+    this.store.on('settings', () => { for (const c of this.conns) if (c.authed) this.pushDeck(c); });
     this.pairing.on('approved', ({ deviceId, token }) => {
       for (const c of this.conns) if (c.deviceId === deviceId && !c.authed) this.welcome(c, token);
     });
@@ -79,6 +83,7 @@ export class Clients extends EventEmitter<ClientsEvents> {
       default: break;
     }
     if (!c.authed) return;
+    if (m.t === 'stats') { const summary = this.statsOf(); if (summary) this.send(c, { t: 'stats', summary }); return; }
     if (m.t === 'press') {
       const w = this.store.widget(m.widgetId);
       if (!w) return this.log.debug('clients', 'press on unknown widget', { widgetId: m.widgetId });
@@ -187,6 +192,8 @@ export class Clients extends EventEmitter<ClientsEvents> {
     const w = this.store.widget(widgetId); if (!w) return;
     for (const c of this.conns) if (c.authed && c.folderId === w.folderId) this.send(c, { t: 'patch', widgetId, ...p });
   }
+  /** Send to every paired device that is connected. */
+  broadcast(m: HostMsg): void { for (const c of this.conns) if (c.authed) this.send(c, m); }
   notify(target: string | 'all', text: string, vibrate = false): void {
     for (const c of this.conns) if (c.authed && (target === 'all' || c.deviceId === target)) this.send(c, { t: 'notify', text, vibrate });
   }

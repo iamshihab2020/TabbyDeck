@@ -10,6 +10,8 @@ export interface PressOptions {
    * still presses once longMs passes. The browser cancels the pointer when it starts scrolling.
    */
   tap?: boolean;
+  /** The key has its own hold action: holding sends only long (no press), and a press is sent on release. */
+  holdOnly?: boolean;
 }
 
 /**
@@ -32,9 +34,10 @@ export function createPressTracker(h: PressHandlers, opts: PressOptions = { long
     down() {
       isDown = true; pressed = false;
       stop();
-      if (!opts.tap) press();
+      if (!opts.tap && !opts.holdOnly) press();
       longTimer = setTimeout(() => {
         if (!isDown) return;
+        if (opts.holdOnly) { pressed = true; h.onLong(); return; } // held: only the hold action
         if (!pressed) press();
         if (opts.repeatMs) repeat = setInterval(() => { if (isDown) h.onPress(); }, opts.repeatMs); else h.onLong();
       }, opts.longMs);
