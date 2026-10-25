@@ -4,6 +4,7 @@ import { ActionRegistry, type ActionContext } from '../src/engine/registry.ts';
 import { createFakeNative } from '../src/native/fake.ts';
 import { nullLogger } from '../src/log/logger.ts';
 import { PowerShellHost } from '../src/native/win/ps.ts';
+import { profilesFromLocalState } from '../src/native/win/browsers.ts';
 
 let native: ReturnType<typeof createFakeNative>; let registry: ActionRegistry; let ctx: ActionContext;
 beforeEach(() => {
@@ -29,6 +30,22 @@ describe('system actions call the native layer', () => {
     expect(native.calls.map(c => c.args[0])).toEqual(['https://example.com', 'spotify:playlist:1']);
     await expect(run('system.openUrl', { url: 'javascript:alert(1)' })).rejects.toThrow(/not allowed/);
     await expect(run('system.openUrl', { url: 'file:///C:/x.exe' })).rejects.toThrow(/not allowed/);
+  });
+  it('browser opens a profile of this PC, on a website if given, and nothing else', async () => {
+    await run('system.browser', { profile: 'chrome:Profile 5' });
+    await run('system.browser', { profile: 'chrome:Default', url: 'https://github.com' });
+    expect(native.calls).toEqual([
+      { method: 'launch', args: ['C:/Chrome/chrome.exe', ['--profile-directory=Profile 5']] },
+      { method: 'launch', args: ['C:/Chrome/chrome.exe', ['--profile-directory=Default', 'https://github.com']] },
+    ]);
+    await expect(run('system.browser', { profile: 'chrome:Profile 9' })).rejects.toThrow(/not on this PC/);
+    await expect(run('system.browser', { profile: 'chrome:Default', url: '--disable-web-security' })).rejects.toThrow(/http/);
+  });
+  it('reads browser profiles from Local State, skipping odd folder names', () => {
+    expect(profilesFromLocalState({ profile: { info_cache: { Default: { name: 'Personal' }, 'Profile 5': { name: 'Work' }, '../x': { name: 'Bad' }, 'Profile 6': {} } } }))
+      .toEqual([['Default', 'Personal'], ['Profile 5', 'Work']]);
+    expect(profilesFromLocalState(null)).toEqual([]);
+    expect(profilesFromLocalState({ profile: {} })).toEqual([]);
   });
   it('run reports a non-zero exit code as an error', async () => {
     native.system.run = async () => ({ code: 2, out: 'boom' });

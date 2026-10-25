@@ -5,6 +5,7 @@ import type { BtDevice } from '@tabbydeck/shared';
 import type { NativeSystem } from '../types.ts';
 import type { PowerShellHost } from './ps.ts';
 import { psQuote } from './ps.ts';
+import { browserProfiles } from './browsers.ts';
 import { win32 } from './win32.ts';
 import { findWindow, foregroundWindow, listWindows, placeWindow, previousAppWindow } from './windows.ts';
 
@@ -385,6 +386,7 @@ export function createWinSystem(ps: PowerShellHost, dataDir?: string): NativeSys
       if ((await getDnd()) === on) return;
       if ((await ps.call(DND_TOGGLE, 8000, DND_PRELUDE)).trim() !== 'ok') throw new Error('Windows did not open its notification centre. Unlock the PC and try again.');
     },
+    browserProfiles: () => browserProfiles(),
     listApps: async () => {
       const out = (await ps.call('@(Get-StartApps | Select-Object Name, AppID) | ConvertTo-Json -Compress', 15000)).trim();
       const raw = (out ? JSON.parse(out) : []) as { Name: string; AppID: string }[];

@@ -28,9 +28,10 @@ export function registerWindows(registry: ActionRegistry, deps: { native: Native
     },
     run: async (p, ctx) => {
       const match = String(p.window ?? ''), until = Date.now() + Number(p.wait) * 1000;
-      // A window that just opened can still be resizing itself; place it once more a moment later. Not for the next
-      // screen: a second move would go on to the screen after that (with two screens, back where it started).
-      const again = p.place !== 'next-screen';
+      // An app that just opened can still be resizing its window; place it once more a moment later. Only for a named
+      // app: the window in front is already open, and placing "the window in front" twice could reach a second window
+      // (after a minimize another one is in front). Never for the next screen, where a second move goes on again.
+      const again = !!match.trim() && p.place !== 'next-screen';
       for (;;) {
         if (system.placeWindow(match, p.place as WindowPlace)) { if (again) { await pause(400, ctx.signal); system.placeWindow(match, p.place as WindowPlace); } return; }
         if (Date.now() >= until) throw new Error(match.trim() ? `No window matches "${match}"` : 'No window is in front');

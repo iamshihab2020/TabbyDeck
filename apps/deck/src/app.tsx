@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
-import type { DeckView, HostMsg } from '@tabbydeck/shared';
-import { SpriteDefs } from '@tabbydeck/ui';
+import type { DeckView, HostMsg, StatsSummary } from '@tabbydeck/shared';
+import { BadgeArt, SpriteDefs } from '@tabbydeck/ui';
+import { BADGES, type BadgeId } from '@tabbydeck/shared/badges';
 import { browserKV, loadDevice, saveDevice } from './device.ts';
 import { createConnection, type ConnState, type Connection } from './connection.ts';
 import { Pair } from './screens/Pair.tsx';
@@ -9,6 +10,7 @@ import { Overlay } from './overlays.tsx';
 import { keepAwake } from './wake.ts';
 import { toggleFullscreen } from './fullscreen.ts';
 import { createIdleDimmer, loadDimAfter, saveDimAfter } from './idle.ts';
+import type { Mood } from './screens/Cat.tsx';
 
 const VERSION = '0.2.0';
 
@@ -23,6 +25,9 @@ export function App() {
   const [conn, setConn] = useState<Connection | null>(null);
   const [dimAfter, setDimAfter] = useState(() => loadDimAfter(kv));
   const [dimmed, setDimmed] = useState(false);
+  const [stats, setStats] = useState<StatsSummary | null>(null);
+  const [badge, setBadge] = useState<{ id: BadgeId; n: number } | null>(null);
+  const [mood, setMood] = useState<Mood>({ playing: false, focus: false });
 
   useEffect(() => {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -38,6 +43,9 @@ export function App() {
       },
       onNotify: m => { setToast(m.text); if (m.vibrate && navigator.vibrate) navigator.vibrate(30); },
       onPairRequired: c2 => setCode(c2),
+      onStats: m => setStats(m.summary),
+      onBadge: m => { setBadge(b => ({ id: m.id, n: (b?.n ?? 0) + 1 })); if (navigator.vibrate) navigator.vibrate([20, 60, 20]); },
+      onMood: m => setMood({ playing: m.playing, focus: m.focus, meeting: m.meeting, timer: m.timer }),
     }, { WebSocket, caps: { vibrate: 'vibrate' in navigator, wakeLock: 'wakeLock' in navigator }, version: VERSION });
     setConn(c);
     const stopWake = keepAwake();
@@ -46,6 +54,7 @@ export function App() {
 
   useEffect(() => { if (!flash) return; const t = setTimeout(() => setFlash(null), 500); return () => clearTimeout(t); }, [flash]);
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 3000); return () => clearTimeout(t); }, [toast]);
+  useEffect(() => { if (!badge) return; const t = setTimeout(() => setBadge(null), 4500); return () => clearTimeout(t); }, [badge?.n]);
 
   const rename = (n: string) => { const d = loadDevice(kv); saveDevice(kv, { ...d, name: n }); setName(n); conn?.rehello(); };
   const showDeck = !!view && (state === 'open' || state === 'closed' || state === 'connecting');
@@ -64,10 +73,18 @@ export function App() {
     <>
       <SpriteDefs />
       {showDeck
-        ? <DeckScreen view={view!} conn={conn!} flash={flash} name={name} onRename={rename} dimAfter={dimAfter} onDimAfter={chooseDim} />
+        ? <DeckScreen view={view!} conn={conn!} flash={flash} name={name} onRename={rename} dimAfter={dimAfter} onDimAfter={chooseDim}
+            mood={mood}
+            stats={stats} onAskStats={() => { setStats(null); conn?.send({ t: 'stats' }); }} />
         : <Pair state={state} code={code} name={name} onRename={rename} onFullscreen={toggleFullscreen} />}
       <Overlay state={state} hasDeck={!!view} onRetry={() => conn?.retry()} />
       {toast && <div class="toast" role="status">{toast}</div>}
+      {badge && showDeck && (
+        <div key={badge.n} class="badge-pop" role="status">
+          <BadgeArt id={badge.id} size={52} />
+          <span class="badge-text"><span class="badge-new">New badge</span><b>{BADGES[badge.id].name}</b><span>{BADGES[badge.id].text}</span></span>
+        </div>
+      )}
       {dimmed && showDeck && <div class="dim-veil" aria-hidden="true" onPointerDown={e => e.preventDefault()} />}
     </>
   );

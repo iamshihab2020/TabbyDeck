@@ -57,6 +57,21 @@ export class InfoKeys {
     return live;
   };
 
+  /** Whether a Pomodoro key is in a focus stretch now (running, not on its break). */
+  focusing(): boolean {
+    for (const [id, r] of this.runs) {
+      const w = this.d.store.widget(id);
+      if (r.endsAt !== null && !r.rest && w && InfoKeys.step(w)?.action === 'timer.pomodoro') return true;
+    }
+    return false;
+  }
+
+  /** Whether a Timer key is counting down now. */
+  timing(): boolean {
+    for (const [id, r] of this.runs) { const w = this.d.store.widget(id); if (r.endsAt !== null && w && InfoKeys.step(w)?.action === 'timer.countdown') return true; }
+    return false;
+  }
+
   /** Start or pause a timer key. */
   toggle(w: Widget): void {
     const r = this.runs.get(w.id);

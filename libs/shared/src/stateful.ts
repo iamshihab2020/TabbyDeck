@@ -12,6 +12,8 @@ export const STATEFUL: Record<string, Partial<Look>> = {
   'system.bluetooth': { bg: '#1d4ed8', fg: '#eff6ff' },
   'system.dnd': { label: 'Notifications off', icon: 'bell-slash', bg: '#5b21b6', fg: '#ede9fe' },
   'system.bluetoothPanel': { bg: '#1d4ed8', fg: '#eff6ff' },
+  // Every screen is off and the PC is kept awake (keys set to All screens only).
+  'display.screensOff': { label: 'Screens off', bg: '#1e3a8a', fg: '#dbeafe' },
   // Play / Pause (the media key) while something plays.
   'media.playPause': { label: 'Pause', icon: 'pause' },
   // An app is using the camera.
@@ -27,6 +29,7 @@ export function statefulAction(w: Pick<Widget, 'config'>): string | undefined {
   if (w.config.kind !== 'button') return undefined;
   const s = w.config.triggers.press?.[0];
   if (s?.action === 'keyboard.hotkey' && String(s.params.hotkey).toLowerCase() === 'mediaplaypause') return 'media.playPause';
+  if (s?.action === 'display.screensOff' && (s.params.screen ?? 'all') !== 'all') return undefined; // one monitor: its state is not read
   return s && s.action in STATEFUL ? s.action : undefined;
 }
 
@@ -40,6 +43,8 @@ export function confirmText(w: Pick<Widget, 'config'>): string | undefined {
     if (s.action === 'system.run') return 'This runs a command on the PC.';
     if (s.action === 'system.kill') return 'This force-closes an app on the PC. Unsaved work in it is lost.';
     if (s.action === 'meeting.leave') return 'This leaves the call.';
+    if (s.action === 'display.screensOff' && (s.params.screen ?? 'all') !== 'all') return 'This monitor turns off. Press the key again to turn it back on.';
+    if (s.action === 'display.screensOff') return 'The screens turn off and the PC stays awake until you come back: any key or mouse move on the PC, or another key here, turns them on. Keep it plugged in, as it uses battery the whole time. Closing the lid still puts it to sleep.';
   }
   return undefined;
 }

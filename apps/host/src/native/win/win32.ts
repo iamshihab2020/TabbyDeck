@@ -18,6 +18,7 @@ function declare() {
   const RECT = koffi.struct('TB_RECT', { left: 'int32', top: 'int32', right: 'int32', bottom: 'int32' });
   const MONITORINFO = koffi.struct('TB_MONITORINFO', { cbSize: 'uint32', rcMonitor: RECT, rcWork: RECT, dwFlags: 'uint32' });
   const POWER_STATUS = koffi.struct('TB_SYSTEM_POWER_STATUS', { ACLineStatus: 'uint8', BatteryFlag: 'uint8', BatteryLifePercent: 'uint8', SystemStatusFlag: 'uint8', BatteryLifeTime: 'uint32', BatteryFullLifeTime: 'uint32' });
+  const LASTINPUTINFO = koffi.struct('TB_LASTINPUTINFO', { cbSize: 'uint32', dwTime: 'uint32' });
   const MonitorProc = koffi.proto('__stdcall', 'TB_MONITORENUMPROC', 'bool', ['void *', 'void *', 'void *', 'intptr']);
 
   return {
@@ -31,6 +32,7 @@ function declare() {
     GetWindowTextLengthW: user32.func('__stdcall', 'GetWindowTextLengthW', 'int32', ['void *']),
     IsWindowVisible: user32.func('__stdcall', 'IsWindowVisible', 'bool', ['void *']),
     IsIconic: user32.func('__stdcall', 'IsIconic', 'bool', ['void *']),
+    IsWindow: user32.func('__stdcall', 'IsWindow', 'bool', ['void *']),
     ShowWindow: user32.func('__stdcall', 'ShowWindow', 'bool', ['void *', 'int32']),
     SetForegroundWindow: user32.func('__stdcall', 'SetForegroundWindow', 'bool', ['void *']),
     GetForegroundWindow: user32.func('__stdcall', 'GetForegroundWindow', 'void *', []),
@@ -55,6 +57,10 @@ function declare() {
     GetSystemPowerStatus: kernel32.func('__stdcall', 'GetSystemPowerStatus', 'bool', [koffi.out(koffi.pointer(POWER_STATUS))]),
     NtQueryWnfStateData: ntdll.func('__stdcall', 'NtQueryWnfStateData', 'int32', [koffi.pointer('uint64'), 'void *', 'void *', koffi.out(koffi.pointer('uint32')), koffi.out(koffi.pointer('uint32')), koffi.inout(koffi.pointer('uint32'))]),
     LocalFree: kernel32.func('__stdcall', 'LocalFree', 'void *', ['void *']),
+    PostMessageW: user32.func('__stdcall', 'PostMessageW', 'bool', ['intptr', 'uint32', 'uintptr', 'intptr']),
+    SetThreadExecutionState: kernel32.func('__stdcall', 'SetThreadExecutionState', 'uint32', ['uint32']),
+    GetLastInputInfo: user32.func('__stdcall', 'GetLastInputInfo', 'bool', [koffi.inout(koffi.pointer(LASTINPUTINFO))]),
+    GetTickCount: kernel32.func('__stdcall', 'GetTickCount', 'uint32', []),
   };
 }
 

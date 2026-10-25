@@ -12,6 +12,12 @@ describe('keys that ask first', () => {
     expect(confirmText(btn('system.run', { command: 'x' }))).toBeDefined();
     expect(confirmText(btn('keyboard.hotkey', { hotkey: 'Ctrl+C' }))).toBeUndefined();
   });
+  it('Screen off warns about battery and the lid for all screens, and says how to undo one monitor; only All screens shows state', () => {
+    expect(confirmText(btn('display.screensOff', { screen: 'all' }))).toMatch(/plugged in.*lid/);
+    expect(confirmText(btn('display.screensOff', { screen: 'MON1' }))).toMatch(/again/);
+    expect(statefulAction(btn('display.screensOff', { screen: 'all' }))).toBe('display.screensOff');
+    expect(statefulAction(btn('display.screensOff', { screen: 'MON1' }))).toBeUndefined();
+  });
   it('in the starter deck exactly Sleep, Lock and Shut down ask, Play, Mute, Mic, Night light and Bluetooth show state, and Volume, Brightness and Bluetooth open panels', () => {
     const ws = starterProfileFile().widgets;
     expect(ws.filter(w => confirmText(w)).map(w => w.look.label)).toEqual(['Sleep', 'Lock', 'Shut down']);

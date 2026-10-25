@@ -7,7 +7,8 @@ import { Toasts, toast } from './components/Toast.tsx';
 import { DeckPage } from './pages/Deck.tsx';
 import { DevicesPage } from './pages/Devices.tsx';
 import { IntegrationsPage } from './pages/Integrations.tsx';
-import { ThemesPage } from './pages/Themes.tsx';
+import { CustomizePage } from './pages/Customize.tsx';
+import { StatsPage } from './pages/Stats.tsx';
 import { LogPage } from './pages/Log.tsx';
 import { SettingsPage } from './pages/Settings.tsx';
 import { ApproveModal, type PendingDevice } from './components/ApproveModal.tsx';
@@ -61,7 +62,8 @@ function Shell() {
         {state.settings.guideDone && page !== 'devices' && <ConnectReminder onConnect={() => setPage('devices')} />}
         {page === 'deck' && <DeckPage />}
         {page === 'devices' && <DevicesPage />}
-        {page === 'themes' && <ThemesPage />}
+        {page === 'customize' && <CustomizePage />}
+        {page === 'stats' && <StatsPage />}
         {page === 'integrations' && <IntegrationsPage />}
         {page === 'log' && <LogPage />}
         {page === 'settings' && <SettingsPage />}

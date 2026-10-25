@@ -1,4 +1,4 @@
-export type ParamFieldType = 'string' | 'text' | 'number' | 'boolean' | 'enum' | 'hotkey' | 'path' | 'profile' | 'folder' | 'variable' | 'screen' | 'window' | 'audioOutput';
+export type ParamFieldType = 'string' | 'text' | 'number' | 'boolean' | 'enum' | 'hotkey' | 'path' | 'profile' | 'folder' | 'variable' | 'screen' | 'window' | 'audioOutput' | 'browserProfile';
 
 export interface ParamField {
   type: ParamFieldType;

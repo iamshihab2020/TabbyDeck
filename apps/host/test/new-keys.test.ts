@@ -53,9 +53,9 @@ describe('ready-made decks', () => {
     expect(path('VS Code')).toBe('shell:AppsFolder\\MyCode');
     expect(f.widgets.find(x => x.look.label === 'VS Code')!.look.image).toMatch(/\.png$/);
     expect(path('Terminal')).toBe('shell:AppsFolder\\Microsoft.WindowsTerminal_8wekyb3d8bbwe!App'); // not here: its usual id
-    // Sized to the keys this PC can use (28: VS Code and the keys that need no app) in 7 x 4; the four apps not installed come last.
+    // Sized to the keys this PC can use (36: VS Code and the keys that need no app) in 6 x 6; the four apps not installed come last, on a seventh row.
     const order = [...f.widgets].sort((a, b) => a.y - b.y || a.x - b.x).map(w => w.look.label);
-    expect([f.profile.cols, f.profile.rows, f.widgets.length]).toEqual([7, 5, 32]);
+    expect([f.profile.cols, f.profile.rows, f.widgets.length]).toEqual([6, 7, 40]);
     expect(order.slice(0, 2)).toEqual(['VS Code', 'GitHub']);
     expect(order.slice(-4)).toEqual(['Terminal', 'GitHub Desktop', 'Docker', 'Postman']); // the app, not the Ctrl+` key
     const music = await dispatchCommand('profile.template', { id: 'music' }, { host, log: nullLogger(), onPausedChange: () => {} });
@@ -131,11 +131,40 @@ describe('live info keys and timers', () => {
     expect(patches.some(x => x.id === t.id && x.big === '01:30')).toBe(true);
     expect([clockText(61_000), clockText(3_600_000)]).toEqual(['01:01', '1:00:00']);
   });
+  it('knows when a Pomodoro is in a focus stretch, not on its break or paused', () => {
+    let now = 0;
+    const p = host.store.createWidget(root(), button('timer.pomodoro', { focus: 1, rest: 1 }, 3));
+    const t = host.store.createWidget(root(), button('timer.countdown', { minutes: 1 }, 4));
+    const info = new InfoKeys({ store: host.store, native: host.native, now: () => now });
+    info.toggle(t); expect(info.focusing()).toBe(false); // a plain timer is not focus
+    info.toggle(p); expect(info.focusing()).toBe(true);
+    now = 61_000; info.tick(); expect(info.focusing()).toBe(false); // on its break
+    now = 122_000; info.tick(); expect(info.focusing()).toBe(true); // focusing again
+    info.toggle(p); expect(info.focusing()).toBe(false); // paused
+  });
   it('Do not disturb switches and shows its state', async () => {
     await host.registry.get('system.dnd')!.run({ mode: 'toggle' }, {} as never);
     expect(native().dnd).toBe(true);
     await host.registry.get('system.dnd')!.run({ mode: 'on' }, {} as never);
     expect(native().calls.filter(c => c.method === 'setDnd')).toHaveLength(2);
+  });
+});
+
+describe('keys with a hold action', () => {
+  it('are marked for the deck, so holding does only the hold action', () => {
+    const plain = host.store.createWidget(root(), button('system.placeWindow', { window: '', place: 'maximize', wait: 0 }, 1));
+    const held = host.store.createWidget(root(), { ...button('system.placeWindow', { window: '', place: 'maximize', wait: 0 }, 2), config: { kind: 'button', policy: 'ignore', triggers: {
+      press: [{ id: 'p', action: 'system.placeWindow', params: { window: '', place: 'maximize', wait: 0 } }], long: [{ id: 'l', action: 'system.placeWindow', params: { window: '', place: 'minimize', wait: 0 } }] } } });
+    const view = buildDeckView(host.store, host.store.profiles()[0].profile.id, root());
+    expect(view.widgets.find(w => w.id === plain.id)?.hold).toBeUndefined();
+    expect(view.widgets.find(w => w.id === held.id)?.hold).toBe(true);
+  });
+  it('the window in front is placed once, so a minimize cannot reach a second window', async () => {
+    const n = native();
+    n.front = { title: 'x', exe: 'code.exe' };
+    await host.registry.get('system.placeWindow')!.run({ window: '', place: 'minimize', wait: 0 }, { signal: new AbortController().signal } as never);
+    await new Promise(r => setTimeout(r, 500));
+    expect(n.calls.filter(c => c.method === 'placeWindow')).toEqual([{ method: 'placeWindow', args: ['', 'minimize'] }]);
   });
 });
 
@@ -194,5 +223,30 @@ describe('text passed to PowerShell', () => {
     const { ClientMsgSchema } = await import('@tabbydeck/shared');
     expect(ClientMsgSchema.safeParse({ t: 'volume', widgetId: 'w', app: 'chrome', percent: 10 }).success).toBe(true);
     expect(ClientMsgSchema.safeParse({ t: 'volume', widgetId: 'w', app: "x\u2019; Stop-Computer; \u2019", percent: 10 }).success).toBe(false);
+  });
+});
+
+describe('the cat and the stats, from the PC', () => {
+  it('the cat is set on the PC and every connected deck follows; the phone can ask for its week', async () => {
+    const f = host.store.profiles()[0];
+    expect(buildDeckView(host.store, f.profile.id, f.profile.rootFolderId).cat).toEqual({ on: true, name: 'Tabby' });
+    const ws = new WebSocket(`ws://127.0.0.1:${host.lanPort}/ws`);
+    const inbox: HostMsg[] = [];
+    ws.on('message', d => inbox.push(JSON.parse(String(d))));
+    await new Promise(r => ws.on('open', r));
+    const wait = async (ok: () => boolean) => { for (let i = 0; i < 200 && !ok(); i++) await new Promise(r => setTimeout(r, 5)); };
+    ws.send(JSON.stringify({ t: 'hello', deviceId: 'cat1', name: 'Phone', clientVersion: '0.3.0', caps: { vibrate: true, wakeLock: false } }));
+    await wait(() => inbox.some(m => m.t === 'pairRequired'));
+    host.pairing.approve('cat1', (inbox.find(m => m.t === 'pairRequired') as Extract<HostMsg, { t: 'pairRequired' }>).code);
+    await wait(() => inbox.some(m => m.t === 'deck'));
+    expect((await dispatchCommand('settings.update', { patch: { catOn: false, catName: 'Mochi' } }, { host, log: nullLogger(), onPausedChange: () => {} })).ok).toBe(true);
+    await wait(() => inbox.some(m => m.t === 'deck' && m.view.cat?.name === 'Mochi'));
+    expect(inbox.filter(m => m.t === 'deck').at(-1)).toMatchObject({ view: { cat: { on: false, name: 'Mochi' } } });
+    host.stats.press(f.widgets[0]);
+    ws.send(JSON.stringify({ t: 'stats' }));
+    await wait(() => inbox.some(m => m.t === 'stats'));
+    expect(inbox.find(m => m.t === 'stats')).toMatchObject({ summary: { total: 1, keys: [{ n: 1 }] } });
+    expect(await dispatchCommand('stats.get', { days: 30 }, { host, log: nullLogger(), onPausedChange: () => {} })).toMatchObject({ ok: true, data: { total: 1 } });
+    ws.close();
   });
 });

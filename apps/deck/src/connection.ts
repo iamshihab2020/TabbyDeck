@@ -9,6 +9,9 @@ export interface Handlers {
   onPatch(m: Extract<HostMsg, { t: 'patch' }>): void;
   onNotify(m: Extract<HostMsg, { t: 'notify' }>): void;
   onPairRequired(code: string): void;
+  onMood?(m: Extract<HostMsg, { t: 'mood' }>): void;
+  onStats?(m: Extract<HostMsg, { t: 'stats' }>): void;
+  onBadge?(m: Extract<HostMsg, { t: 'badge' }>): void;
 }
 export interface Deps { WebSocket: typeof WebSocket; caps: { vibrate: boolean; wakeLock: boolean }; version: string }
 export interface Connection { send(m: ClientMsg): void; close(): void; retry(): void; rehello(): void; readonly state: ConnState }
@@ -51,6 +54,9 @@ export function createConnection(url: string, kv: KV, h: Handlers, deps: Deps): 
         case 'deck': attempt = 0; if (state !== 'open') set('open'); h.onDeck(m.view); break;
         case 'patch': h.onPatch(m); break;
         case 'notify': h.onNotify(m); break;
+        case 'mood': h.onMood?.(m); break;
+        case 'stats': h.onStats?.(m); break;
+        case 'badge': h.onBadge?.(m); break;
         default: break;
       }
     };

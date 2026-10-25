@@ -14,6 +14,17 @@ describe('press tracker', () => {
   });
   afterEach(() => vi.useRealTimers());
 
+  it('a key with its own hold: a tap presses on release, a hold sends only long', () => {
+    const got: string[] = [];
+    const h = createPressTracker({ onPress: () => got.push('press'), onLong: () => got.push('long'), onDouble: () => got.push('double'), onRelease: () => got.push('release') },
+      { longMs: 500, doubleMs: 300, holdOnly: true });
+    h.down(); expect(got).toEqual([]); // nothing yet: it may become a hold
+    vi.advanceTimersByTime(200); h.up();
+    expect(got).toEqual(['press', 'release']);
+    got.length = 0; vi.advanceTimersByTime(1000);
+    h.down(); vi.advanceTimersByTime(500); expect(got).toEqual(['long']); // no press first
+    h.up(); expect(got).toEqual(['long', 'release']);
+  });
   it('fires press immediately on down', () => {
     t.down();
     expect(events).toEqual(['press']);

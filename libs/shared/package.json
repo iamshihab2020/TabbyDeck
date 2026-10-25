@@ -1,6 +1,6 @@
 {
   "name": "@tabbydeck/shared",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "exports": {
@@ -9,7 +9,8 @@
     "./layout": "./src/layout.ts",
     "./keys": "./src/keys.ts",
     "./presets": "./src/presets.ts",
-    "./templates": "./src/templates.ts"
+    "./templates": "./src/templates.ts",
+    "./badges": "./src/badges.ts"
   },
   "scripts": {},
   "dependencies": {

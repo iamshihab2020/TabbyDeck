@@ -66,6 +66,22 @@ describe('connection', () => {
     onState: s => states.push(s), onDeck: () => {}, onPatch: () => {}, onNotify: () => {}, onPairRequired: () => {}, ...extra,
   }, { WebSocket: FakeWS as unknown as typeof WebSocket, caps: { vibrate: true, wakeLock: false }, version: '0.1.0' });
 
+  it('passes on a badge just earned', () => {
+    const got: unknown[] = [];
+    connect({ onBadge: (m: unknown) => got.push(m) });
+    FakeWS.last.open();
+    FakeWS.last.recv({ t: 'badge', id: 'night-owl' });
+    expect(got).toEqual([{ t: 'badge', id: 'night-owl' }]);
+  });
+
+  it('passes on what the PC is doing, for the cat', () => {
+    const moods: unknown[] = [];
+    connect({ onMood: (m: unknown) => moods.push(m) });
+    FakeWS.last.open();
+    FakeWS.last.recv({ t: 'mood', playing: true, focus: false });
+    expect(moods).toEqual([{ t: 'mood', playing: true, focus: false }]);
+  });
+
   it('sends hello with the stored token on open', () => {
     saveDevice(kv, { id: 'dev1', name: 'Phone', token: 'tok' });
     connect();

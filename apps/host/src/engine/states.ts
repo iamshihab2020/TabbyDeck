@@ -53,6 +53,7 @@ export class StateWatcher {
       'system.bluetooth': () => n.system.getBluetooth(),
       'media.playPause': () => n.system.mediaPlaying(),
       'system.dnd': () => n.system.getDnd(),
+      'display.screensOff': async () => n.display.screensDark(),
       'meeting.camera': () => n.system.cameraInUse(),
       nowPlaying: async () => {
         const t = await n.system.nowPlaying();

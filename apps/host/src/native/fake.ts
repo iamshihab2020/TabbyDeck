@@ -5,7 +5,7 @@ import type { AppSound, AudioOutput, Native, NowPlaying, ScreenInfo, WindowInfo 
 // A 1x1 transparent PNG, standing in for an app icon.
 const TINY_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
-export interface FakeNative extends Native { calls: { method: string; args: unknown[] }[]; volume: number; mute: boolean; micMute: boolean; screens: ScreenInfo[]; nightLight: boolean; energySaver: boolean; bluetooth: boolean; btDevices: BtDevice[]; playing: boolean;
+export interface FakeNative extends Native { calls: { method: string; args: unknown[] }[]; volume: number; mute: boolean; micMute: boolean; screens: ScreenInfo[]; screensDark: boolean; nightLight: boolean; energySaver: boolean; bluetooth: boolean; btDevices: BtDevice[]; playing: boolean;
   outputs: AudioOutput[]; apps: AppSound[]; open: WindowInfo[]; front: WindowInfo | null; track: NowPlaying | null; camera: boolean; mic: string[]; dnd: boolean; firewall: 'allowed' | 'blocked' | 'missing' | 'unknown'; batteryLevel: { percent: number; charging: boolean } | null }
 
 /** Records every call; used by tests and by `--fake-native` runs (e2e, CI). */
@@ -13,7 +13,7 @@ export function createFakeNative(opts: { echo?: (line: string) => void } = {}): 
   const calls: { method: string; args: unknown[] }[] = [];
   const rec = (method: string, ...args: unknown[]) => { calls.push({ method, args }); opts.echo?.(`fake ${method} ${args.map(a => JSON.stringify(a)).join(' ')}`); };
   const n: FakeNative = {
-    calls, volume: 50, mute: false, micMute: false, screens: [{ id: 'LAP1', name: 'Laptop screen', brightness: 60 }, { id: 'MON1', name: 'Monitor', brightness: 80 }], nightLight: false, energySaver: false, bluetooth: true, playing: false,
+    calls, volume: 50, mute: false, micMute: false, screens: [{ id: 'LAP1', name: 'Laptop screen', brightness: 60 }, { id: 'MON1', name: 'Monitor', brightness: 80 }], screensDark: false, nightLight: false, energySaver: false, bluetooth: true, playing: false,
     outputs: [{ id: 'spk', name: 'Speakers', isDefault: true }, { id: 'hp', name: 'Headphones', isDefault: false }],
     apps: [{ id: 'spotify', name: 'Spotify', level: 80, muted: false }, { id: 'chrome', name: 'Google Chrome', level: 100, muted: false }],
     open: [{ title: 'main.ts - Visual Studio Code', exe: 'code.exe' }, { title: 'Spotify Premium', exe: 'spotify.exe' }],
@@ -36,6 +36,7 @@ export function createFakeNative(opts: { echo?: (line: string) => void } = {}): 
       activeWindowTitle: () => 'Fake Window', lock: async () => rec('lock'), sleep: async () => rec('sleep'),
       shutdown: async r => rec('shutdown', r), clipboardSet: async t => rec('clipboardSet', t), screenshotToClipboard: async () => rec('screenshotToClipboard'),
       listApps: async () => [{ id: 'Microsoft.WindowsCalculator_8wekyb3d8bbwe!App', name: 'Calculator' }, { id: 'C:\Apps\Pilot.exe', name: 'File Pilot' }],
+      browserProfiles: async () => [{ id: 'chrome:Default', browser: 'Chrome', name: 'Personal', exe: 'C:/Chrome/chrome.exe', dir: 'Default' }, { id: 'chrome:Profile 5', browser: 'Chrome', name: 'Work', exe: 'C:/Chrome/chrome.exe', dir: 'Profile 5' }],
       hasUrlHandler: async s => s !== 'missingapp',
       networkCheck: async () => ({ network: 'Home Wi-Fi', category: 'Private', firewall: n.firewall, vpn: [] }),
       appIcon: async () => Buffer.from(TINY_PNG, 'base64'),
@@ -70,6 +71,9 @@ export function createFakeNative(opts: { echo?: (line: string) => void } = {}): 
       setScreenBrightness: async (id, p) => { rec('setScreenBrightness', id, p); const s = n.screens.find(x => x.id === id); if (!s) throw new Error('That screen is not connected'); s.brightness = p; },
       getNightLight: async () => n.nightLight, setNightLight: async on => { rec('setNightLight', on); n.nightLight = on; },
       project: async m => rec('project', m),
+      screensDark: () => n.screensDark,
+      screensBack: () => { const was = n.screensDark; n.screensDark = false; return was; },
+      screensOff: async id => { rec('screensOff', id); if (id === 'all') n.screensDark = true; if (id !== 'all' && !n.screens.some(s => s.id === id)) throw new Error('That screen is not connected'); },
     },
     sysinfo: { cpuPercent: () => 12, ramPercent: () => 40, battery: () => n.batteryLevel && { ...n.batteryLevel } },
     dispose: async () => {},

@@ -37,7 +37,7 @@ describe('schemas', () => {
   });
   it('defaults match the spec', () => {
     expect(DEFAULT_LOOK).toMatchObject({ bg: '#25221f', fg: '#efeae3', iconScale: 1, iconX: 0, iconY: 0, iconOpacity: 1, labelPos: 'bottom', labelSize: 14, radius: 16 });
-    expect(DEFAULT_SETTINGS).toEqual({ schemaVersion: 1, port: 8191, editorPort: 8192, bindAddress: '', autoStart: false, theme: 'dark', openEditorOnStart: true, guideDone: false });
+    expect(DEFAULT_SETTINGS).toEqual({ schemaVersion: 1, port: 8191, editorPort: 8192, bindAddress: '', autoStart: false, theme: 'dark', openEditorOnStart: true, guideDone: false, catOn: true, catName: 'Tabby' });
     expect(SettingsSchema.parse({ schemaVersion: 1, port: 8191, editorPort: 8192, bindAddress: '', autoStart: false, theme: 'dark', openEditorOnStart: true }).guideDone).toBe(false); // settings saved before the guide existed
     expect(() => SettingsSchema.parse(DEFAULT_SETTINGS)).not.toThrow();
   });

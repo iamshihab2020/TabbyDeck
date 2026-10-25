@@ -63,7 +63,7 @@ export function KeyStyle({ file }: { file: ProfileFile }) {
       </button>
       {open && (
         <Modal title="Key style" onClose={() => setOpen(false)} width={720}>
-          <p class="modal-text">For every key in {file.profile.name}, on every phone and tablet. Each profile can have its own; the Themes page sets them all at once.</p>
+          <p class="modal-text">For every key in {file.profile.name}, on every phone and tablet. Each profile can have its own; the Customize page sets them all at once.</p>
           <StyleCards file={file} on={cur} onPick={pick} />
           <div class="modal-actions"><button type="button" class="btn primary" onClick={() => setOpen(false)}>Done</button></div>
         </Modal>

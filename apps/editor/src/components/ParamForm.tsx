@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import type { AudioOutput, ParamSchema, ParamField, Screen } from '@tabbydeck/shared';
+import type { AudioOutput, BrowserProfile, ParamSchema, ParamField, Screen } from '@tabbydeck/shared';
 import { Icon } from '@tabbydeck/ui';
 import { useApi, useSnapshot } from '../state.ts';
 import { fieldError, hotkeyFromEvent } from './fields/logic.ts';
@@ -72,6 +72,7 @@ function Field({ f, value, onChange, invalid }: { f: ParamField; value: unknown;
     case 'screen': return <ScreenField label={f.title} value={String(value ?? 'all')} onChange={onChange} />;
     case 'window': return <WindowField label={f.title} value={String(value ?? '')} onChange={onChange} required={f.required} />;
     case 'audioOutput': return <OutputField label={f.title} value={String(value ?? '')} onChange={onChange} />;
+    case 'browserProfile': return <BrowserProfileField label={f.title} value={String(value ?? '')} onChange={onChange} />;
     case 'path': return <PathField label={f.title} value={String(value ?? '')} onChange={onChange} invalid={invalid} />;
     default: return <input aria-label={f.title} class={cls} value={String(value ?? '')} spellcheck={false} onInput={e => onChange((e.target as HTMLInputElement).value)} />;
   }
@@ -125,6 +126,23 @@ function OutputField({ label, value, onChange }: { label: string; value: string;
       {(outputs ?? []).map(o => <option key={o.id} value={o.id}>{shortOutput(o.name)}</option>)}
       {!known && <option value={value}>An output that is not connected</option>}
     </select>
+  );
+}
+
+/** The profiles of Chrome, Edge and Brave on this PC, by the name each browser shows. A saved profile that is gone stays listed. */
+function BrowserProfileField({ label, value, onChange }: { label: string; value: string; onChange(v: string): void }) {
+  const api = useApi();
+  const [profiles, setProfiles] = useState<BrowserProfile[] | null>(null);
+  useEffect(() => { api.cmd<BrowserProfile[]>('browsers.list', {}).then(setProfiles, () => setProfiles([])); }, []);
+  const known = !profiles || !value || profiles.some(p => p.id === value);
+  return (
+    <>
+      <select aria-label={label} class="input" value={value} onChange={e => onChange((e.target as HTMLSelectElement).value)}>
+        <option value="">{profiles && !profiles.length ? 'No Chrome, Edge or Brave profiles found' : 'Choose a profile'}</option>
+        {(profiles ?? []).map(p => <option key={p.id} value={p.id}>{p.browser}: {p.name}</option>)}
+        {!known && <option value={value}>A profile that is not on this PC any more</option>}
+      </select>
+    </>
   );
 }
 

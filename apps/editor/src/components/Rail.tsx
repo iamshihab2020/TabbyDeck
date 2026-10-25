@@ -1,10 +1,11 @@
 import { Icon, Mark } from '@tabbydeck/ui';
 
-export type PageId = 'deck' | 'devices' | 'themes' | 'integrations' | 'log' | 'settings';
+export type PageId = 'deck' | 'devices' | 'customize' | 'stats' | 'integrations' | 'log' | 'settings';
 const PAGES: { id: PageId; label: string; icon: string }[] = [
   { id: 'deck', label: 'Deck', icon: 'squares-four' },
   { id: 'devices', label: 'Devices', icon: 'device-tablet' },
-  { id: 'themes', label: 'Themes', icon: 'palette' },
+  { id: 'customize', label: 'Customize', icon: 'palette' },
+  { id: 'stats', label: 'Stats', icon: 'chart-bar' },
   { id: 'integrations', label: 'Integrations', icon: 'plugs-connected' },
   { id: 'log', label: 'Log', icon: 'file-text' },
   { id: 'settings', label: 'Settings', icon: 'gear-six' },

@@ -8,6 +8,9 @@ import { canFullscreen, fromHomeScreen, isFullscreen, isIOS, toggleFullscreen } 
 import { DIM_CHOICES } from '../idle.ts';
 import { BluetoothPanel, BrightnessPanel, VolumePanel } from './Brightness.tsx';
 import { TrackpadPanel } from './Trackpad.tsx';
+import { Cat, catSize, type Mood } from './Cat.tsx';
+import { WeekCard } from './Week.tsx';
+import type { StatsSummary } from '@tabbydeck/shared';
 import { SWIPE_START, profileAfterSwipe, swipeDir } from '../swipe.ts';
 
 export interface DeckProps {
@@ -18,6 +21,11 @@ export interface DeckProps {
   onRename(name: string): void;
   dimAfter: number;
   onDimAfter(ms: number): void;
+  /** What the PC is doing, for the cat's outfit. Whether it shows, and its name, come with the view. */
+  mood: Mood;
+  /** The "Your week" card's numbers, once the PC has sent them; onAskStats asks again. */
+  stats: StatsSummary | null;
+  onAskStats(): void;
 }
 
 const assetUrl = (id: string) => `assets/u/${encodeURIComponent(id)}`;
@@ -57,7 +65,12 @@ export function layoutFor(view: DeckView, area: { w: number; h: number } | null)
   return { view: { ...view, cols, gap, rows: flowed.rows, widgets: flowed.widgets }, cell: { w: side, h: side }, scroll: true };
 }
 
-export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimAfter }: DeckProps) {
+export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimAfter, mood, stats, onAskStats }: DeckProps) {
+  const cat = view.cat?.on !== false, catName = view.cat?.name || 'Tabby';
+  const [week, setWeek] = useState(false);
+  // Where a finger last touched empty space: the cat runs there.
+  const [chase, setChase] = useState<{ x: number; n: number } | null>(null);
+  const chaseTo = (e: PointerEvent) => { if (cat && !(e.target as Element).closest('.tb-tile, button')) setChase(c => ({ x: e.clientX, n: (c?.n ?? 0) + 1 })); };
   const area = useRef<HTMLDivElement>(null);
   const { view: shown, cell, scroll } = layoutFor(view, useAreaSize(area));
   const tap = useRef<string | null>(null); // a panel or careful key touched while scrolling: it opens on lift
@@ -88,9 +101,10 @@ export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimA
     let t = trackers.get(id);
     if (!t) {
       // Level keys (Volume +) keep going while held: 400 ms, then a step every 150 ms. While scrolling, keys fire on lift.
-      const onPress = () => { if (lift && navigator.vibrate) navigator.vibrate(10); send(id, 'press'); };
+      // A key with a warning and its own hold (Screen off): a tap asks first, holding runs the hold at once.
+      const onPress = () => { if (lift && navigator.vibrate) navigator.vibrate(10); if (w.confirm && w.hold) setAsk(w); else send(id, 'press'); };
       t = createPressTracker({ onPress, onLong: () => send(id, 'long'), onDouble: () => send(id, 'double'), onRelease: () => send(id, 'release') },
-        { ...(w.repeat ? { longMs: 400, doubleMs: 300, repeatMs: 150 } : { longMs: 500, doubleMs: 300 }), tap: lift });
+        { ...(w.repeat ? { longMs: 400, doubleMs: 300, repeatMs: 150 } : { longMs: 500, doubleMs: 300 }), tap: lift, holdOnly: !!w.hold });
       trackers.set(id, t);
     }
     return t;
@@ -130,7 +144,7 @@ export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimA
   const barUp = () => clearTimeout(bar.current);
 
   return (
-    <div class="deck" style={{ background: view.bg }}>
+    <div class={cat ? 'deck with-cat' : 'deck'} style={{ background: view.bg }}>
       <header class="deck-bar" onPointerDown={barDown} onPointerUp={barUp} onPointerLeave={barUp}>
         <span class="bar-side">
           {inFolder && <button type="button" class="bar-btn" aria-label="Back" onClick={back}><Icon name="caret-left" size={22} /></button>}
@@ -145,7 +159,7 @@ export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimA
         </span>
       </header>
 
-      <div class={`deck-area${scroll ? ' scroll' : ''}${slide ? ` ${slide}` : ''}`} ref={area}>
+      <div class={`deck-area${scroll ? ' scroll' : ''}${slide ? ` ${slide}` : ''}`} ref={area} onPointerDown={chaseTo}>
         {view.widgets.length === 0
           ? <p class="empty">Nothing here yet. Add buttons in TabbyDeck on your computer.</p>
           : <Grid view={shown} cell={cell} assetUrl={assetUrl} tileProps={w => ({
@@ -157,13 +171,13 @@ export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimA
                 const el = e.currentTarget as HTMLElement, r = el.getBoundingClientRect();
                 setRipple({ id: w.id, x: e.clientX - r.left, y: e.clientY - r.top, n: (ripple?.n ?? 0) + 1 });
                 setPressed(w.id);
-                if (lift) { tap.current = w.id; if (!w.panel && !w.confirm) tracker(w).down(); return; } // the touch may still turn into a scroll or swipe
+                if (lift) { tap.current = w.id; if (!w.panel && !(w.confirm && !w.hold)) tracker(w).down(); return; } // the touch may still turn into a scroll or swipe
                 el.setPointerCapture?.(e.pointerId); if (navigator.vibrate) navigator.vibrate(10);
-                if (w.panel) setPanel(w.id); else if (w.confirm) setAsk(w); else tracker(w).down();
+                if (w.panel) setPanel(w.id); else if (w.confirm && !w.hold) setAsk(w); else tracker(w).down();
               },
               onPointerUp: () => {
                 setPressed(null);
-                if (lift && tap.current === w.id && (w.panel || w.confirm)) { tap.current = null; if (w.panel) setPanel(w.id); else setAsk(w); return; }
+                if (lift && tap.current === w.id && (w.panel || (w.confirm && !w.hold))) { tap.current = null; if (w.panel) setPanel(w.id); else setAsk(w); return; }
                 if (tap.current && tap.current !== w.id) trackers.get(tap.current)?.cancel(); // lifted on another key
                 tap.current = null; tracker(w).up();
               },
@@ -171,6 +185,8 @@ export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimA
               onKeyDown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (w.disabled) return; if (w.panel) setPanel(w.id); else if (w.confirm) setAsk(w); else { send(w.id, 'press'); send(w.id, 'release'); } } },
             })} />}
       </div>
+
+      {cat && <div onPointerDown={chaseTo}><Cat mood={mood} chase={chase} size={catSize(Math.min(innerWidth, innerHeight))} name={catName} /></div>}
 
       {ask && <Confirm w={ask} onCancel={() => setAsk(null)} onConfirm={() => { send(ask.id, 'press'); send(ask.id, 'release'); setAsk(null); }} />}
       {panelKey?.panel === 'brightness' && <BrightnessPanel screens={panelKey.screens} onSet={(screen, percent) => conn.send({ t: 'brightness', widgetId: panelKey.id, screen, percent })} onClose={() => setPanel(null)} />}
@@ -180,14 +196,15 @@ export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimA
         onClose={() => setPanel(null)} />}
       {panelKey?.panel === 'bluetooth' && <BluetoothPanel bt={panelKey.bluetooth} onPower={power => conn.send({ t: 'bluetooth', widgetId: panelKey.id, power })} onDevice={(device, connect) => conn.send({ t: 'bluetooth', widgetId: panelKey.id, device, connect })} onClose={() => setPanel(null)} />}
       {panelKey?.panel === 'trackpad' && <TrackpadPanel onSend={padSend} onClose={() => setPanel(null)} />}
-      {sheet && <Sheet view={view} conn={conn} name={name} onRename={onRename} dimAfter={dimAfter} onDimAfter={onDimAfter} onClose={() => setSheet(false)} />}
+      {sheet && <Sheet view={view} conn={conn} name={name} onRename={onRename} dimAfter={dimAfter} onDimAfter={onDimAfter} onWeek={() => { setSheet(false); onAskStats(); setWeek(true); }} onClose={() => setSheet(false)} />}
+      {week && <WeekCard stats={stats} onClose={() => setWeek(false)} />}
     </div>
   );
 }
 
 const DIM_LABEL: Record<number, string> = { 0: 'Never', 30000: '30 s', 60000: '1 min', 300000: '5 min' };
 
-function Sheet({ view, conn, name, onRename, dimAfter, onDimAfter, onClose }: { view: DeckView; conn: Connection; name: string; onRename(n: string): void; dimAfter: number; onDimAfter(ms: number): void; onClose(): void }) {
+function Sheet({ view, conn, name, onRename, dimAfter, onDimAfter, onWeek, onClose }: { view: DeckView; conn: Connection; name: string; onRename(n: string): void; dimAfter: number; onDimAfter(ms: number): void; onWeek(): void; onClose(): void }) {
   const [draft, setDraft] = useState(name);
   return (
     <div class="sheet-backdrop" onClick={onClose}>
@@ -202,12 +219,14 @@ function Sheet({ view, conn, name, onRename, dimAfter, onDimAfter, onClose }: { 
             ))}
           </div>
         </>}
+        <button type="button" class="btn week-btn" onClick={onWeek}><Icon name="chart-bar" size={18} />Your week</button>
         <h2 class="sheet-h">Dim the screen when idle</h2>
         <div class="chips" role="radiogroup" aria-label="Dim the screen when idle">
           {DIM_CHOICES.map(ms => (
             <button key={ms} type="button" role="radio" aria-checked={ms === dimAfter} class={ms === dimAfter ? 'chip on' : 'chip'} onClick={() => onDimAfter(ms)}>{DIM_LABEL[ms]}</button>
           ))}
         </div>
+        <p class="hint">Name the cat or turn it off in TabbyDeck on your PC, under Customize.</p>
         <h2 class="sheet-h">This device</h2>
         <input class="input" value={draft} maxLength={40} onInput={e => setDraft((e.target as HTMLInputElement).value)}
           onBlur={() => { const n = draft.trim(); if (n && n !== name) onRename(n); }} />

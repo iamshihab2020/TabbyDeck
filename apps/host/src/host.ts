@@ -15,6 +15,8 @@ import { StateWatcher } from './engine/states.ts';
 import { startAppFollower } from './engine/follow.ts';
 import { InfoKeys } from './engine/info.ts';
 import { Installed } from './engine/installed.ts';
+import { Stats } from './engine/stats.ts';
+import { appUsingMic } from './integrations/meeting.ts';
 import { parseHotkey } from './native/win/keys.ts';
 import { registerBuiltins } from './integrations/index.ts';
 import { AssetStore, assetRoute } from './assets/store.ts';
@@ -35,7 +37,7 @@ export interface HostOptions {
 }
 
 export interface Host {
-  store: Store; assets: AssetStore; native: Native; installed: Installed;
+  store: Store; assets: AssetStore; native: Native; installed: Installed; stats: Stats;
   /** The last phone or tablet that opened the deck page (not this PC itself): shows whether phones reach the PC at all. */
   readonly lastVisit: { ip: string; at: string } | null; registry: ActionRegistry; engine: Engine; vars: Vars;
   pairing: Pairing; sessions: Sessions; clients: Clients; readonly lan: HttpHandle; readonly lanPort: number;
@@ -69,7 +71,12 @@ export async function createHost(o: HostOptions): Promise<Host> {
   };
   const engine = new Engine(registry, { vars, host: hostApi, log: o.log });
   engine.on('paused', e => { if (e.deviceId) clients.notify(e.deviceId, 'TabbyDeck is paused', false); });
-  clients = new Clients({ store, pairing, sessions, log: o.log, onPress: (s, w, kind) => { engine.trigger(w, kind, { deviceId: s.deviceId }); if (kind === 'press') states.afterPress(w); } });
+  clients = new Clients({ store, pairing, sessions, log: o.log, onPress: (s, w, kind) => {
+    if (w.config.kind !== 'button' || !(w.config.triggers[kind] ?? w.config.triggers.press)?.some(st => st.action === 'display.screensOff')) { if (native.display.screensBack()) native.input.mouseMove(0, 0, false); }
+    engine.trigger(w, kind, { deviceId: s.deviceId }); if (kind === 'press') { states.afterPress(w); stats.press(w); } } });
+  const stats = new Stats({ dir: o.dataDir, native });
+  clients.statsOf = () => stats.summary(7);
+  stats.on('badge', id => clients.broadcast({ t: 'badge', id }));
   const states = new StateWatcher({ store, native, clients });
   clients.liveOf = w => ({ ...states.liveOf(w), ...info.liveOf(w) });
   clients.on('deviceConnected', () => void states.refresh());
@@ -165,10 +172,24 @@ export async function createHost(o: HostOptions): Promise<Host> {
   const stopStates = states.start();
   const stopInfo = info.start();
   const stopInstalled = installed.start();
+  const stopStats = stats.start();
+  // The decks' cat dresses for what the PC is doing: headphones while media plays, glasses during a focus session.
+  // The cat's other outfits: a headset while a call uses the mic, a hard hat while a timer runs.
+  let mood = { playing: false, focus: false, meeting: false, timer: false };
+  const readMood = async () => {
+    if (!clients.count()) return;
+    const next = {
+      playing: await native.system.mediaPlaying().catch(() => false), focus: info.focusing(),
+      meeting: !!appUsingMic(await native.system.micUsers().catch(() => [])), timer: info.timing(),
+    };
+    if (JSON.stringify(next) !== JSON.stringify(mood)) { mood = next; clients.broadcast({ t: 'mood', ...mood }); }
+  };
+  const moodTimer = setInterval(() => void readMood(), 4000); moodTimer.unref?.();
+  clients.on('deviceConnected', () => clients.broadcast({ t: 'mood', ...mood }));
   const stopFollow = startAppFollower({ store, native, clients });
 
   return {
-    store, assets, native, installed, registry, engine, vars, pairing, sessions, clients,
+    store, assets, native, installed, stats, registry, engine, vars, pairing, sessions, clients,
     get lan() { return lan; },
     get lastVisit() { return lastVisit; },
     get lanPort() { return lan.port; },
@@ -184,6 +205,8 @@ export async function createHost(o: HostOptions): Promise<Host> {
       stopStates();
       stopInfo();
       stopInstalled();
+      stopStats();
+      clearInterval(moodTimer);
       stopFollow();
       await engine.shutdown();
       held.releaseAll();

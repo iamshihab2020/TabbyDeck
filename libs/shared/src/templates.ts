@@ -30,20 +30,29 @@ const volume = act('Volume', 'speaker-high', 'system.volumePanel');
 const play = hk('Play', 'play', 'MediaPlayPause', '#f5a524', '#2a1a00');
 const spotify = app('Spotify', ['Spotify'], 'SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify');
 const slack = app('Slack', ['Slack'], 'com.tinyspeck.slackdesktop_8yrtsj140pw4g!Slack');
+// Claude Code: type a command into the Claude prompt in front, then Enter.
+const CL = '#3a2317', CLF = '#f4a97f', CL2 = '#2a1d17';
+const claude = (label: string, icon: string, text: string): TemplateKey => ({ label, icon, bg: CL2, fg: CLF, steps: [{ action: 'keyboard.type', params: { text } }, { action: 'keyboard.hotkey', params: { hotkey: 'Enter' } }] });
 const meeting = (label: string, icon: string, control: string, bg = '#33302b', fg = FG) => act(label, icon, `meeting.${control}`, { app: 'auto' }, bg, fg);
 
 export const TEMPLATES: Template[] = [
   {
-    id: 'developer', name: 'Developer', icon: 'code', description: 'Your editor, terminal and Git; the VS Code keys for search, run and debug; windows, CPU and a focus timer.',
+    id: 'developer', name: 'Developer', icon: 'code', description: 'Your editor, terminal and Git; Claude Code: start it in your repo, compact, usage, model, effort, mode, plan and pasting a screenshot; the VS Code keys for commands, search and format; windows, CPU and a focus timer.',
     rows: [
       [app('VS Code', ['Visual Studio Code'], 'Microsoft.VisualStudioCode'), app('Terminal', ['Terminal', 'Windows Terminal'], 'Microsoft.WindowsTerminal_8wekyb3d8bbwe!App'),
         app('GitHub Desktop', ['GitHub Desktop'], 'com.squirrel.GitHubDesktop.GitHubDesktop'), app('Docker', ['Docker Desktop'], 'Docker.DockerForWindows.Settings'),
-        app('Postman', ['Postman'], 'com.squirrel.Postman.Postman'), url('GitHub', 'github-logo', 'https://github.com', KEY), url('Claude', 'asterisk', 'https://claude.ai', '#3a2317', '#f4a97f'),
+        app('Postman', ['Postman'], 'com.squirrel.Postman.Postman'), url('GitHub', 'github-logo', 'https://github.com', KEY), url('Claude', 'asterisk', 'https://claude.ai', CL, CLF),
         url('localhost', 'globe', 'http://localhost:3000')],
+      // Claude Code. VS Code + Claude opens a repo and starts claude in its terminal: set the repo folder under Arguments.
+      [{ label: 'VS Code + Claude', icon: 'code', bg: CL, fg: CLF, steps: [{ action: 'system.launch', params: { path: '%LOCALAPPDATA%\\Programs\\Microsoft VS Code\\Code.exe', args: '' } },
+        { action: 'deck.wait', params: { seconds: 5 } }, { action: 'keyboard.hotkey', params: { hotkey: 'Ctrl+Shift+`' } }, { action: 'deck.wait', params: { seconds: 2 } },
+        { action: 'keyboard.type', params: { text: 'claude' } }, { action: 'keyboard.hotkey', params: { hotkey: 'Enter' } }] },
+        claude('Resume', 'arrows-counter-clockwise', '/resume'), hk('Mode', 'sliders-horizontal', 'Shift+Tab', CL2, CLF), claude('Compact', 'arrows-in', '/compact'),
+        claude('Clear', 'eraser', '/clear'), claude('Usage', 'gauge', '/usage'), claude('Context', 'chart-pie', '/context'), claude('Review', 'checks', '/review')],
+      [claude('Model', 'robot', '/model'), claude('Opus', 'sparkle', '/model opus'), claude('Sonnet', 'lightning', '/model sonnet'), claude('Effort', 'brain', '/effort'),
+        claude('Plan', 'map-trifold', '/plan'), hk('Paste image', 'image', 'Alt+V', CL2, CLF), hk('Stop Claude', 'hand', 'Esc', '#7f1d1d', '#fecaca'), hk('Yes / Enter', 'check', 'Enter', '#14532d', '#bbf7d0')],
       [hk('Commands', 'command', 'Ctrl+Shift+P', '#1e3a5f'), hk('Go to file', 'file-code', 'Ctrl+P'), hk('Search all', 'magnifying-glass', 'Ctrl+Shift+F'), hk('Terminal', 'terminal-window', 'Ctrl+`'),
-        hk('Comment', 'chat-text', 'Ctrl+/'), hk('Format', 'text-align-left', 'Shift+Alt+F'), hk('Rename', 'pencil-simple', 'F2'), hk('Definition', 'arrow-square-out', 'F12')],
-      [hk('Run', 'play', 'F5', '#14532d', '#86efac'), hk('Stop', 'stop', 'Shift+F5', '#7f1d1d', '#fecaca'), hk('Step over', 'arrow-bend-down-right', 'F10'), hk('Step into', 'arrow-down', 'F11'),
-        hk('Save', 'floppy-disk', 'Ctrl+S'), hk('Undo', 'arrow-counter-clockwise', 'Ctrl+Z'), hk('Redo', 'arrow-clockwise', 'Ctrl+Y'), hk('DevTools', 'bug', 'Ctrl+Shift+I')],
+        hk('Comment', 'chat-text', 'Ctrl+/'), hk('Format', 'text-align-left', 'Shift+Alt+F'), hk('Save', 'floppy-disk', 'Ctrl+S'), hk('DevTools', 'bug', 'Ctrl+Shift+I')],
       [place('Left half', 'sidebar', 'left'), place('Right half', 'columns', 'right'), place('Other screen', 'arrow-square-out', 'next-screen'), hk('Task Manager', 'pulse', 'Ctrl+Shift+Esc'),
         cpu, ram, pomodoro, dnd],
     ],
