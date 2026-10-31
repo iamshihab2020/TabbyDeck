@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TabbyDeck: your phone is a Stream Deck for Windows</title>
-<meta name="description" content="TabbyDeck turns any phone or tablet on your Wi-Fi into a grid of buttons for your Windows PC. Free, open source, no app to install, no account, no cloud.">
+<meta name="description" content="TabbyDeck turns any phone or tablet on your Wi-Fi into a grid of buttons for your Windows PC. Free, open source, no account, no cloud. Runs in the phone's browser or the Android app.">
 <meta property="og:title" content="TabbyDeck">
 <meta property="og:description" content="Turn your phone or tablet into a Stream Deck for Windows. Free and open source.">
 <meta property="og:image" content="https://iamshihab2020.github.io/TabbyDeck/img/social-preview.png">
@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400..800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=6">
+<link rel="stylesheet" href="styles.css?v=7">
 <script>document.documentElement.classList.add("js")</script>
 </head>
 <body>
@@ -32,6 +32,7 @@
     <a href="#decks">Decks</a>
     <a href="#styles">Styles</a>
     <a href="#stats">Stats</a>
+    <a href="#android">Android app</a>
     <a href="#setup">Set up</a>
     <a href="#private">Privacy</a>
     <a href="releases.html">Releases</a>
@@ -44,12 +45,12 @@
 <section class="hero" aria-labelledby="hero-title">
   <div class="hero-copy">
     <h1 id="hero-title" class="hero-title"><span class="line">Your phone is the</span> <span class="line">remote for your PC.</span></h1>
-    <p class="lede">TabbyDeck puts a grid of buttons on any phone or tablet on your Wi-Fi. Each one does something on your Windows PC: music, volume, screens, apps, shortcuts, calls, power. No app to install, no account, no cloud.</p>
+    <p class="lede">TabbyDeck puts a grid of buttons on any phone or tablet on your Wi-Fi. Each one does something on your Windows PC: music, volume, screens, apps, shortcuts, calls, power. It runs in the phone's browser or the Android app, with no account and no cloud.</p>
     <div class="ctas">
       <a class="btn primary" href="https://github.com/iamshihab2020/TabbyDeck/releases/latest"><svg aria-hidden="true"><use href="#i-download-simple"/></svg>Download for Windows</a>
       <span class="ver">Free and open source. <span data-version>Version 0.2.0</span>, Windows 10 and 11.</span>
     </div>
-    <div class="soon"><span class="soon-icons"><svg aria-hidden="true"><use href="#i-android-logo"/></svg><svg aria-hidden="true"><use href="#i-apple-logo"/></svg></span><div><span class="soon-tag">Coming soon</span><p><b>TabbyDeck apps for Android, iPhone and iPad.</b> Until then, the deck runs in your phone's browser, with nothing to install.</p></div></div>
+    <a class="soon now" href="#android"><span class="soon-icons"><svg aria-hidden="true"><use href="#i-android-logo"/></svg></span><div><span class="soon-tag">New</span><p><b>TabbyDeck for Android.</b> An app that finds your PC by itself and shows the deck full screen, on Android 5.0 and newer.</p></div></a>
   </div>
 
   <div class="stage" id="stage">
@@ -123,7 +124,7 @@
 <section class="styles" id="styles" aria-labelledby="st-title">
   <div class="st-copy">
     <h2 id="st-title" class="h2">Make the keys look the way you like.</h2>
-    <p class="sub">Pick one of six key styles for all your decks, or a different one for each. Then give every key its own colour, icon or picture.</p>
+    <p class="sub">Pick one of six key styles for all your decks, or a different one for each. Then give every key its own colour, icon, photo or GIF, and put a colour, gradient or photo behind the keys, in the editor or on the phone itself.</p>
     <div class="st-pick" role="radiogroup" aria-label="Key style" id="stpick"></div>
     <p class="st-desc" id="stdesc" aria-live="polite"></p>
     <p class="st-cat"><svg aria-hidden="true"><use href="#i-paint-brush"/></svg>On the Customize page you can also name the cat that lives under your keys, or send it to bed for good.</p>
@@ -181,12 +182,47 @@
   </div>
 </section>
 
+<section class="droid" id="android" aria-labelledby="a-title">
+  <div class="a-copy">
+    <h2 id="a-title" class="h2">Give an old Android phone a job.</h2>
+    <p class="sub">The TabbyDeck app runs on Android 5.0 and newer, so the phone in your drawer can become the deck on your desk.</p>
+    <ul class="plist">
+      <li>It finds your PC on the Wi-Fi by itself, with no address to type and no code to scan. You pair it once with six digits.</li>
+      <li>The deck fills the whole screen, and the screen stays on.</li>
+      <li>The deck comes from your PC, so the app always matches the TabbyDeck you run.</li>
+    </ul>
+    <div class="ctas">
+      <a class="btn primary" href="https://github.com/iamshihab2020/TabbyDeck/releases/latest/download/TabbyDeck-android.apk"><svg aria-hidden="true"><use href="#i-android-logo"/></svg>Download for Android</a>
+      <span class="ver">Under 100 KB. Download it on the phone you want to use.</span>
+    </div>
+    <p class="a-note">Android asks before it installs an app from outside the Play Store: allow it for your browser, then choose Install. Rather not install anything? The deck runs in Chrome too.</p>
+  </div>
+  <div class="a-phone" id="aphone" aria-hidden="true">
+    <div class="a-screen">
+      <div class="a-home">
+        <svg class="a-logo" viewBox="0 0 20 20"><rect width="20" height="20" rx="6" fill="#f5a524"/><g fill="#1a1208"><rect x="4.6" y="4.6" width="4.6" height="4.6" rx="1.2"/><rect x="10.8" y="4.6" width="4.6" height="4.6" rx="1.2"/><rect x="4.6" y="10.8" width="4.6" height="4.6" rx="1.2"/><rect x="10.8" y="10.8" width="4.6" height="4.6" rx="1.2" opacity=".55"/></g></svg>
+        <b class="a-name">TabbyDeck</b>
+        <p class="a-status"><span class="a-looking">Looking for your PC on this Wi-Fi…</span><span class="a-found">Found your PC.</span></p>
+        <span class="a-spin"></span>
+        <span class="a-pc">PC at 192.168.1.20</span>
+        <span class="a-type">Or type the address TabbyDeck shows on the PC</span>
+      </div>
+      <div class="a-deck">
+        <i style="--c:#14532d"><svg><use href="#i-play"/></svg></i><i><svg><use href="#i-speaker-high"/></svg></i><i><svg><use href="#i-speaker-x"/></svg></i>
+        <i><svg><use href="#i-microphone-slash"/></svg></i><i style="--c:#3b2a4d"><svg><use href="#i-moon-stars"/></svg></i><i style="--c:#1d4ed8"><svg><use href="#i-bluetooth"/></svg></i>
+        <i><svg><use href="#i-monitor"/></svg></i><i style="--c:#3b2a4d"><svg><use href="#i-crop"/></svg></i><i><svg><use href="#i-cpu"/></svg></i>
+        <i><svg><use href="#i-memory"/></svg></i><i><svg><use href="#i-lock"/></svg></i><i style="--c:#a30000"><svg><use href="#i-power"/></svg></i>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="setup" id="setup" aria-labelledby="s-title">
   <h2 id="s-title" class="h2">Ready in about two minutes.</h2>
   <ol class="steps">
     <li><h3>Download and unzip</h3><p>Get the zip from the latest release and unzip it anywhere, for example in Documents.</p></li>
     <li><h3>Open tabbydeck.exe</h3><p>When Windows asks whether TabbyDeck may use the network, allow Private networks.</p></li>
-    <li><h3>Scan the code</h3><p>Point your phone's camera at the code TabbyDeck shows. The deck opens in Chrome on Android or Safari on iPhone and iPad.</p></li>
+    <li><h3>Scan the code</h3><p>Point your phone's camera at the code TabbyDeck shows. The deck opens in Chrome on Android or Safari on iPhone and iPad. The Android app finds the PC without it.</p></li>
     <li><h3>Type six digits</h3><p>The phone shows a code. Type it into TabbyDeck on the PC and choose Allow. Only devices you allow can use your deck.</p>
       <div class="pair" id="pair" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div></li>
   </ol>
@@ -198,14 +234,14 @@
     <h2 id="p-title" class="h2">It stays in your home.</h2>
     <ul class="plist">
       <li>Your phone talks straight to your PC over your own Wi-Fi.</li>
-      <li>TabbyDeck never connects to the internet and sends no data anywhere. There is no account.</li>
+      <li>TabbyDeck sends no data about you anywhere, and there is no account. It goes online only for a Weather key, to ask the free Open-Meteo service about the city you typed.</li>
       <li>Only devices you approve with a code can press your keys. Block or forget one at any time.</li>
       <li>The editor only listens on your own PC.</li>
     </ul>
   </div>
-  <svg class="net" viewBox="0 0 520 300" role="img" aria-label="The phone and the PC talk over your Wi-Fi; nothing goes to the internet">
+  <svg class="net" viewBox="0 0 520 300" role="img" aria-label="The phone and the PC talk over your Wi-Fi, with no cloud in between">
     <g class="cloud-g"><path d="M210 70a34 34 0 0 1 66-10 26 26 0 0 1 34 25 22 22 0 0 1-4 43H214a30 30 0 0 1-4-58z" fill="none" stroke="#5b5149" stroke-width="3" stroke-dasharray="6 6"/>
-      <path class="strike" d="M196 44 324 140" stroke="#f87171" stroke-width="5" stroke-linecap="round"/><text x="260" y="168" text-anchor="middle">Internet: never</text></g>
+      <path class="strike" d="M196 44 324 140" stroke="#f87171" stroke-width="5" stroke-linecap="round"/><text x="260" y="168" text-anchor="middle">No cloud</text></g>
     <path id="wire" d="M92 236 C180 236 340 236 428 236" fill="none" stroke="#3a332d" stroke-width="3"/>
     <circle class="pkt" r="6" fill="#f5a524"><animateMotion dur="2.4s" repeatCount="indefinite"><mpath href="#wire"/></animateMotion></circle>
     <circle class="pkt" r="6" fill="#93c5fd"><animateMotion dur="2.4s" begin="1.2s" repeatCount="indefinite" keyPoints="1;0" keyTimes="0;1" calcMode="linear"><mpath href="#wire"/></animateMotion></circle>
@@ -217,13 +253,14 @@
 
 <section class="download" aria-labelledby="dl-title">
   <h2 id="dl-title" class="dl-title">Give your PC a remote.</h2>
-  <p class="sub">Free for good, under the Apache 2.0 licence. Works with Windows 10 and 11, Android 6 or newer in Chrome, and iPhone or iPad on iOS 13 or newer in Safari.</p>
+  <p class="sub">Free for good, under the Apache 2.0 licence. Works with Windows 10 and 11, Android 5.0 or newer with the app (Android 6 or newer in Chrome), and iPhone or iPad on iOS 13 or newer in Safari.</p>
   <div class="ctas">
     <a class="btn primary" href="https://github.com/iamshihab2020/TabbyDeck/releases/latest"><svg aria-hidden="true"><use href="#i-download-simple"/></svg>Download for Windows</a>
+    <a class="btn ghost" href="https://github.com/iamshihab2020/TabbyDeck/releases/latest/download/TabbyDeck-android.apk"><svg aria-hidden="true"><use href="#i-android-logo"/></svg>Download for Android</a>
     <a class="btn ghost" href="https://github.com/iamshihab2020/TabbyDeck"><svg aria-hidden="true"><use href="#i-github-logo"/></svg>View the source</a>
   </div>
-  <div class="soon"><span class="soon-icons"><svg aria-hidden="true"><use href="#i-android-logo"/></svg><svg aria-hidden="true"><use href="#i-apple-logo"/></svg></span><div><span class="soon-tag">Coming soon</span><p><b>TabbyDeck apps for Android, iPhone and iPad.</b> Until then, the deck runs in your phone's browser, with nothing to install.</p></div></div>
-  <p class="unsigned">Windows may say the app is from an unknown publisher, because it is not signed yet. Choose More info, then Run anyway.</p>
+  <div class="soon"><span class="soon-icons"><svg aria-hidden="true"><use href="#i-apple-logo"/></svg></span><div><span class="soon-tag">Coming soon</span><p><b>A TabbyDeck app for iPhone and iPad.</b> Until then, the deck runs in Safari, with nothing to install.</p></div></div>
+  <p class="unsigned">Windows may say the app is from an unknown publisher, because it is not signed yet. Choose More info, then Run anyway. Android asks before it installs an app from outside the Play Store: allow it for your browser.</p>
 </section>
 
 </main>
@@ -236,6 +273,6 @@
   </div>
 </footer>
 
-<script src="app.js?v=6" defer></script>
+<script src="app.js?v=7" defer></script>
 </body>
 </html>
