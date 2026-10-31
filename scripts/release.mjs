@@ -28,7 +28,8 @@ run('npm', ['run', 'typecheck']);
 run('npm', ['test']);
 run('npm', ['run', 'package']);
 const android = path.join(root, 'apps', 'android');
-run(process.platform === 'win32' ? 'gradlew.bat' : './gradlew', ['assembleRelease', '--console=plain', '-q'], { cwd: android });
+// By full path: cmd.exe started from Node does not look in the current folder. Quoted for folders with spaces.
+run(process.platform === 'win32' ? `"${path.join(android, 'gradlew.bat')}"` : './gradlew', ['assembleRelease', '--console=plain', '-q'], { cwd: android });
 
 const stage = mkdtempSync(path.join(tmpdir(), 'tabbydeck-release-'));
 const app = path.join(stage, 'TabbyDeck');
