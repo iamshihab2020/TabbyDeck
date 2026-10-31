@@ -7,24 +7,35 @@
 [![Download](https://img.shields.io/github/v/release/iamshihab2020/TabbyDeck?label=Download&color=f5a524)](https://github.com/iamshihab2020/TabbyDeck/releases/latest)
 [![Licence](https://img.shields.io/badge/licence-Apache%202.0-blue)](LICENSE)
 ![Windows 10 and 11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078d4)
-![Android](https://img.shields.io/badge/Android-6%2B-3ddc84)
+![Android](https://img.shields.io/badge/Android-5%2B-3ddc84)
 ![iPhone and iPad](https://img.shields.io/badge/iOS-13%2B-555555)
 
 ![Tap a key on the tablet and the PC reacts](docs/screens/demo.gif)
 
 </div>
 
-TabbyDeck puts a grid of buttons on any phone or tablet on your Wi-Fi: Android, iPhone or iPad. Each button does something on your PC: play or pause music, change the volume, dim a screen, open an app, press a shortcut, connect your headphones, lock or shut down. No app to install on the phone, no account, no cloud: it runs in Chrome or Safari and talks straight to your PC.
+TabbyDeck puts a grid of buttons on any phone or tablet on your Wi-Fi: Android, iPhone or iPad. Each button does something on your PC: play or pause music, change the volume, dim a screen, open an app, press a shortcut, connect your headphones, lock or shut down. No account, no cloud: the deck runs in Chrome or Safari, or in the TabbyDeck app on Android, and talks straight to your PC.
 
 ## Download and start
 
-1. Download **TabbyDeck-0.3.0-windows-x64.zip** from the [latest release](https://github.com/iamshihab2020/TabbyDeck/releases/latest).
+1. Download **TabbyDeck-0.4.0-windows-x64.zip** from the [latest release](https://github.com/iamshihab2020/TabbyDeck/releases/latest).
 2. Unzip it anywhere, for example `Documents\TabbyDeck`.
 3. Double-click `tabbydeck.exe`. When Windows asks whether TabbyDeck may use the network, allow **Private networks**.
 4. On your phone or tablet, scan the code TabbyDeck shows, or type the address into Chrome (Android) or Safari (iPhone and iPad).
 5. The phone shows six digits. Type them into TabbyDeck on the PC and choose **Allow**.
 
 Your deck appears on the phone. Windows may warn that the app is from an unknown publisher, because the exe is not signed yet: choose **More info**, then **Run anyway**.
+
+### The Android app
+
+On Android 5.0 or newer, the TabbyDeck app shows your deck full screen and keeps the screen on, with no browser around it.
+
+1. On the phone, download [**TabbyDeck-android.apk**](https://github.com/iamshihab2020/TabbyDeck/releases/latest/download/TabbyDeck-android.apk).
+2. Open it. Android asks before it installs an app from outside the Play Store: allow it for your browser or Files, then choose **Install**.
+3. With TabbyDeck running on the PC, open the app. It finds your PC on the Wi-Fi by itself, or type the address the PC shows.
+4. Pair it with the six digits, as above.
+
+Back shows the list of PCs, and so does **Change PC** in the deck's settings. The deck comes from your PC, so the app always matches the version on the PC.
 
 ### Add TabbyDeck to your home screen
 
@@ -67,8 +78,9 @@ The icon remembers your PC's address. If your router gives the PC a new address,
 - **Screen off:** turn the screens dark while the PC keeps running, for long jobs. Any key or mouse move, or any other deck key, turns them back on.
 - **Browser profiles:** a key opens Chrome, Edge or Brave in the profile you choose, on a website if you like.
 - **Stats and badges:** see your presses per day, top keys and top apps on the Stats page and in Your week on the phone, counted on your PC only. Earn badges like Early bird and Night owl.
-- **Live keys:** Mute, Mic, Night light, Bluetooth, Do not disturb and Play / Pause show what is happening on the PC, and level keys show the percentage. Info keys show CPU, memory, battery or the time.
-- **Timer and Pomodoro:** press to start or pause, hold to reset. Your phone gets a message when the time is up or it is time for a break.
+- **Live keys:** Mute, Mic, Night light, Bluetooth, Do not disturb and Play / Pause show what is happening on the PC, and level keys show the percentage. Info keys show CPU, memory, battery, the time, the weather in your city or how hot the PC is.
+- **Timer and Pomodoro:** press to start or pause, hold to reset. Your phone rings and shows a message when the time is up or it is time for a break. Each finished focus grows a plant in the cat's garden.
+- **Edit on the phone:** in the deck's settings, **Edit keys** lets you change a key's label, icon and colour, give it a photo or GIF from the gallery or camera, move it, or set a background behind the keys. Each phone can also pick its own key sound.
 
 | The editor on your PC | On a phone | Bluetooth |
 |---|---|---|
@@ -80,7 +92,7 @@ Build your deck in the editor on the PC: drag buttons around, resize them, pick 
 
 - Only devices you approve with a code can use your deck. You can block or forget a device at any time.
 - The editor only listens on your own PC.
-- TabbyDeck never connects to the internet and sends no data anywhere.
+- TabbyDeck sends no data about you anywhere. It goes online only for a Weather key, to ask the free Open-Meteo service for the temperature in the city you typed.
 
 ## Build from source
 
@@ -100,6 +112,7 @@ apps/
   host/     the Windows app: server, store, action engine, Windows calls, tray, build
   editor/   the editor window on the PC
   deck/     the deck on the phone or tablet (under 100 KB, runs on Chrome 60 and Safari on iOS 13)
+  android/  the Android app: finds the PC and shows its deck full screen (Kotlin; build with gradlew assembleRelease)
 libs/
   shared/   data model, protocol and the list of actions
   ui/       tiles, grid, icons and design tokens

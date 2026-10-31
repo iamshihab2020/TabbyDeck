@@ -7,8 +7,8 @@ import { Actions } from './inspector/Actions.tsx';
 
 const assetUrl = (id: string) => `/assets/u/${encodeURIComponent(id)}`;
 
-/** Right-hand panel for the selected button: live preview, label, then the Look and Actions tabs. */
-export function Inspector({ widget }: { widget: Widget | null }) {
+/** Right-hand panel for the selected button: live preview on the deck's own background and key style, label, then the Look and Actions tabs. */
+export function Inspector({ widget, plate }: { widget: Widget | null; plate?: { bg: string; tiles: string } }) {
   const api = useApi();
   const [look, setLook] = useState<Look | null>(widget?.look ?? null);
   const [tab, setTab] = useState<'look' | 'actions'>('look');
@@ -44,8 +44,10 @@ export function Inspector({ widget }: { widget: Widget | null }) {
   return (
     <aside class="inspector" aria-label="Button settings">
       <div class="preview" aria-hidden="true">
+        <div class={`preview-plate tiles-${plate?.tiles ?? 'keycap'}`} style={plate ? { background: plate.bg } : undefined}>
         <div class="preview-tile" style={{ width: `${widget.w > 1 ? 196 : 112}px` }}>
           <Tile widget={{ id: widget.id, kind: widget.config.kind, x: 0, y: 0, w: 1, h: 1, look }} cell={{ w: widget.w > 1 ? 196 : 112, h: 112 }} assetUrl={assetUrl} tabIndex={-1} style={{ left: '0', top: '0', width: '100%', height: '100%' }} />
+        </div>
         </div>
       </div>
       <label class="field">

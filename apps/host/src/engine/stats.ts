@@ -6,7 +6,7 @@ import type { BadgeId } from '@tabbydeck/shared/badges';
 import type { Native } from '../native/types.ts';
 
 /** One day: presses per key (by widget id), and seconds each app was in front (by program file). */
-interface Day { presses: Record<string, number>; apps: Record<string, number>; badges?: BadgeId[]; dnd?: number }
+interface Day { presses: Record<string, number>; apps: Record<string, number>; badges?: BadgeId[]; dnd?: number; plants?: number; wilted?: number }
 interface File { version: 1; labels: Record<string, string>; days: Record<string, Day> }
 
 const KEEP_DAYS = 60, SPEED_RUN = 50, ZEN_SECONDS = 2 * 3600;
@@ -41,9 +41,10 @@ export function summarize(file: File, now: Date, days: number): StatsSummary {
   const busiest = list.reduce<StatsSummary['days'][number] | null>((b, d) => (d.presses > (b?.presses ?? 0) ? d : b), null);
   return {
     days: list, total: list.reduce((n, d) => n + d.presses, 0), busiest,
-    keys: [...keys].map(([id, n]) => ({ label: file.labels[id] || 'A key', n })).sort((a, b) => b.n - a.n),
+    keys: [...keys].map(([id, n]) => ({ id, label: file.labels[id] || 'A key', n })).sort((a, b) => b.n - a.n),
     apps: [...apps].map(([app, s]) => ({ app, minutes: Math.round(s / 60) })).filter(a => a.minutes > 0).sort((a, b) => b.minutes - a.minutes),
     badges,
+    garden: list.map(d => ({ date: d.date, plants: file.days[d.date]?.plants ?? 0, wilted: file.days[d.date]?.wilted ?? 0 })),
   };
 }
 
@@ -90,6 +91,15 @@ export class Stats extends EventEmitter<{ badge: [id: BadgeId] }> {
     this.dirty = true;
     this.emit('badge', id);
   }
+
+  /** A Pomodoro focus stretch ran to the end (a plant grows in the garden) or was given up (one wilts). */
+  focus(kind: 'grow' | 'wilt'): void {
+    const t = this.today();
+    if (kind === 'grow') t.plants = (t.plants ?? 0) + 1; else t.wilted = (t.wilted ?? 0) + 1;
+    this.dirty = true;
+  }
+  /** Today's garden, for the decks. */
+  garden(): { plants: number; wilted: number } { const t = this.file.days[dayKey(this.now())]; return { plants: t?.plants ?? 0, wilted: t?.wilted ?? 0 }; }
 
   /** Count time with Do not disturb on; two hours in a day earns Zen. */
   async sampleDnd(): Promise<void> {

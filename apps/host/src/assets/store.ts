@@ -36,10 +36,11 @@ export class AssetStore {
     try { return readFileSync(path.join(this.store.assetsDir, id)); } catch { return undefined; }
   }
 
-  /** Delete an image and clear it from every button that showed it. */
+  /** Delete an image and clear it from every button and background that showed it. */
   delete(id: string): void {
     if (!ID.test(id)) throw new AssetError('not_found');
     rmSync(path.join(this.store.assetsDir, id), { force: true });
+    for (const f of this.store.profiles()) if (f.profile.bgImage === id) this.store.updateProfile(f.profile.id, { bgImage: undefined });
     for (const f of this.store.profiles()) for (const w of f.widgets) {
       if (w.look.image === id) { const { image: _i, ...look } = w.look; this.store.updateWidget(w.id, { look }); }
     }

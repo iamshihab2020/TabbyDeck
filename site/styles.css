@@ -262,6 +262,38 @@ section { padding: clamp(72px, 11vw, 150px) var(--gut); }
 .strike { stroke-dasharray: 170; stroke-dashoffset: 170; transition: stroke-dashoffset .8s var(--ease) .3s; }
 .private.in .strike { stroke-dashoffset: 0; }
 
+/* The Android app: a phone that looks for the PC, finds it, then opens the deck. */
+.droid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: clamp(32px, 6vw, 96px); align-items: center; background: var(--desk-2); }
+.droid .ctas { margin-top: 36px; }
+.a-note { color: var(--muted); font-size: 15px; max-width: 52ch; margin: 22px 0 0; }
+.a-phone { justify-self: center; width: min(270px, 70vw); aspect-ratio: 9 / 18.5; padding: 12px; border-radius: 40px; background: #0f0d0b; border: 1px solid #332d27; transform: rotate(-3deg);
+  box-shadow: 0 0 0 7px #2b2621, 0 40px 80px -30px rgba(0, 0, 0, .8), inset 0 1px 0 rgba(255, 255, 255, .05); }
+.a-screen { position: relative; height: 100%; border-radius: 30px; overflow: hidden; background: #121110; }
+.a-home { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px 20px; text-align: center;
+  transition: opacity .45s var(--ease), transform .45s var(--ease); }
+.a-logo { width: 46px; height: 46px; }
+.a-name { font-size: 22px; font-weight: 700; }
+.a-status { margin: 0; min-height: 2.7em; color: #a8a095; font-size: 15px; line-height: 1.35; }
+.a-spin { width: 22px; height: 22px; border-radius: 50%; border: 3px solid #2e2a26; border-top-color: var(--amber); animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.a-pc { width: 100%; padding: 14px 12px; border-radius: 14px; background: #221f1c; border: 1px solid #2e2a26; font-size: 15px; font-weight: 650;
+  transition: opacity .5s var(--ease), transform .5s var(--spring), background-color .15s, color .15s; }
+.a-type { color: #7a7268; font-size: 12.5px; margin-top: 6px; transition: opacity .5s var(--ease) .1s; }
+.a-deck { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(3, 1fr); align-content: center; gap: 10px; padding: 18px 14px; opacity: 0; transition: opacity .3s; }
+.a-deck i { --c: var(--cap); aspect-ratio: 1; display: grid; place-items: center; border-radius: 14px; background: var(--c); color: var(--text); font-size: 26px;
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--c) 50%, #000), inset 0 1px 0 rgba(255, 255, 255, .07); }
+/* Without script the phone shows the PC found; with it, it looks first. */
+.a-looking, .a-spin { display: none; }
+.js .a-phone:not(.found) .a-looking, .js .a-phone:not(.found) .a-spin { display: block; }
+.js .a-phone:not(.found) .a-found { display: none; }
+.js .a-phone:not(.found) .a-pc, .js .a-phone:not(.found) .a-type { opacity: 0; transform: translateY(12px); }
+.a-phone.tap .a-pc { background: var(--amber); color: var(--amber-ink); transform: scale(.97); }
+.a-phone.open .a-home { opacity: 0; transform: scale(.96); }
+.a-phone.open .a-deck { opacity: 1; }
+.a-phone.open .a-deck i { animation: drop .6s var(--spring) backwards; animation-delay: calc(var(--i, 0) * 45ms); }
+a.soon { color: inherit; text-decoration: none; transition: transform .2s var(--ease), border-color .2s; }
+a.soon:hover { transform: translateY(-2px); border-color: var(--amber); }
+
 /* Download */
 .download { text-align: center; display: grid; justify-items: center; padding-bottom: clamp(60px, 8vw, 110px); }
 .dl-title { font-size: clamp(46px, 8vw, 116px); line-height: .92; letter-spacing: -.025em; font-weight: 750; margin: 0 0 24px; max-width: 12ch; text-wrap: balance; }
@@ -311,6 +343,8 @@ section { padding: clamp(72px, 11vw, 150px) var(--gut); }
   .steps { grid-template-columns: 1fr 1fr; row-gap: 48px; }
   .steps li::after { display: none; }
   .private { grid-template-columns: 1fr; }
+  .droid { grid-template-columns: 1fr; }
+  .a-phone { transform: none; }
 }
 @media (max-width: 560px) {
   body { font-size: 17px; }

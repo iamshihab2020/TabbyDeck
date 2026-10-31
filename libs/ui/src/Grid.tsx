@@ -17,12 +17,13 @@ export function Grid({ view, cell, assetUrl, tileProps, children }: GridProps) {
   const { cols, rows, gap } = view;
   return (
     <div class={`tb-grid tiles-${view.tiles ?? 'keycap'}`} style={{ width: `${cellSpan(cols, cell.w, gap)}px`, height: `${cellSpan(rows, cell.h, gap)}px` }}>
-      {view.widgets.map(w => (
-        <Tile key={w.id} widget={w} cell={cell} assetUrl={assetUrl} {...tileProps?.(w)}
+      {view.widgets.map(w => {
+        const extra = tileProps?.(w);
+        return <Tile key={w.id} widget={w} cell={cell} assetUrl={assetUrl} {...extra}
           style={{ left: `${cellOffset(w.x, cell.w, gap)}px`, top: `${cellOffset(w.y, cell.h, gap)}px`, width: `${cellSpan(w.w, cell.w, gap)}px`, height: `${cellSpan(w.h, cell.h, gap)}px`,
             // read only by the client's entrance ripple: keys rise along the diagonal from the top left
-            animationDelay: `${Math.min(240, (w.x + w.y) * 18)}ms` }} />
-      ))}
+            animationDelay: `${Math.min(240, (w.x + w.y) * 18)}ms`, ...extra?.style }} />;
+      })}
       {children}
     </div>
   );

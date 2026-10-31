@@ -18,11 +18,11 @@ describe('keys that ask first', () => {
     expect(statefulAction(btn('display.screensOff', { screen: 'all' }))).toBe('display.screensOff');
     expect(statefulAction(btn('display.screensOff', { screen: 'MON1' }))).toBeUndefined();
   });
-  it('in the starter deck exactly Sleep, Lock and Shut down ask, Play, Mute, Mic, Night light and Bluetooth show state, and Volume, Brightness and Bluetooth open panels', () => {
+  it('in the starter deck exactly Screen off, Sleep, Lock and Shut down ask, the toggles, Output and Screen off show state, and Volume, Bluetooth, Brightness and Trackpad open panels', () => {
     const ws = starterProfileFile().widgets;
-    expect(ws.filter(w => confirmText(w)).map(w => w.look.label)).toEqual(['Sleep', 'Lock', 'Shut down']);
-    expect(ws.filter(w => statefulAction(w)).map(w => w.look.label)).toEqual(['Play', 'Mute', 'Mic', 'Night light', 'Bluetooth']);
-    expect(ws.filter(w => panelOf(w)).map(w => w.look.label)).toEqual(['Volume', 'Brightness', 'Bluetooth']);
+    expect(ws.filter(w => confirmText(w)).map(w => w.look.label)).toEqual(['Screen off', 'Sleep', 'Lock', 'Shut down']);
+    expect(ws.filter(w => statefulAction(w)).map(w => w.look.label)).toEqual(['Play', 'Mute', 'Mic', 'Output', 'Bluetooth', 'Do not disturb', 'Night light', 'Screen off']);
+    expect(ws.filter(w => panelOf(w)).map(w => w.look.label)).toEqual(['Volume', 'Bluetooth', 'Brightness', 'Trackpad']);
   });
 });
 

@@ -6,7 +6,7 @@ import { DEFAULT_LOOK } from '@tabbydeck/shared';
 import { Store } from '../src/store/store.ts';
 import { nullLogger } from '../src/log/logger.ts';
 import { createFakeNative } from '../src/native/fake.ts';
-import { StateWatcher } from '../src/engine/states.ts';
+import { StateWatcher, appOpen } from '../src/engine/states.ts';
 import { buildDeckView } from '../src/view/deckView.ts';
 import type { Clients } from '../src/server/clients.ts';
 
@@ -119,5 +119,41 @@ describe('stateful buttons', () => {
     native.playing = true;
     await w.refresh('media.playPause');
     expect(view()).toMatchObject({ active: true });
+  });
+});
+
+describe('app keys show when their app is open', () => {
+  const win = (exe: string, title: string) => ({ exe, title });
+  it('matches program paths, Start apps by name, and window switches', () => {
+    const open = [win('code.exe', 'states.ts - Tabby - Visual Studio Code'), win('githubdesktop.exe', 'GitHub Desktop'), win('explorer.exe', 'Program Manager')];
+    const names: Record<string, string> = { 'microsoft.visualstudiocode': 'Visual Studio Code', 'com.squirrel.githubdesktop.githubdesktop': 'GitHub Desktop' };
+    const nameOf = (id: string) => names[id.toLowerCase()];
+    expect(appOpen('system.launch', { path: 'C:\\Users\\me\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe' }, open)).toBe(true);
+    expect(appOpen('system.launch', { path: 'shell:AppsFolder\\Microsoft.VisualStudioCode' }, open, nameOf)).toBe(true); // by title
+    expect(appOpen('system.launch', { path: 'shell:AppsFolder\\com.squirrel.GitHubDesktop.GitHubDesktop' }, open)).toBe(true); // by id, before names are read
+    expect(appOpen('system.launch', { path: 'shell:AppsFolder\\SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify' }, open, () => 'Spotify')).toBe(false);
+    expect(appOpen('system.launch', { path: 'explorer.exe' }, open)).toBe(false); // the desktop is not an open window
+    expect(appOpen('system.launch', { path: 'C:\\notes\\todo.txt' }, open)).toBe(false);
+    expect(appOpen('system.focus', { title: 'code' }, open)).toBe(true);
+  });
+  it('lights the key when the app opens and turns it off when it closes', async () => {
+    const f = store.profiles()[0];
+    const code = store.createWidget(f.profile.rootFolderId, { ...button('system.launch', 2), config: { kind: 'button', policy: 'ignore', triggers: { press: [{ id: 'l', action: 'system.launch', params: { path: 'code.exe' } }] } } });
+    const native = createFakeNative();
+    const patches: { id: string; running?: boolean }[] = [];
+    const clients = { patch: (id: string, p: { running?: boolean }) => patches.push({ id, ...p }), count: () => 1 } as unknown as Clients;
+    native.open = [];
+    const w = new StateWatcher({ store, native, clients });
+    await w.refresh('windows');
+    expect(patches).toEqual([]); // nothing open: nothing sent
+    native.open.push({ exe: 'code.exe', title: 'a - Visual Studio Code' });
+    await w.refresh('windows');
+    native.open[0].title = 'b - Visual Studio Code';
+    await w.refresh('windows');
+    expect(patches.filter(p => p.id === code.id)).toEqual([{ id: code.id, running: true }]); // a title change sends nothing
+    expect(buildDeckView(store, f.profile.id, f.profile.rootFolderId, w.liveOf).widgets.find(x => x.id === code.id)).toMatchObject({ running: true });
+    native.open.length = 0;
+    await w.refresh('windows');
+    expect(patches.at(-1)).toEqual({ id: code.id, running: false });
   });
 });

@@ -10,12 +10,19 @@ export const StatsSummarySchema = z.object({
   days: z.array(z.object({ date: z.string(), presses: z.number() })),
   total: z.number(),
   busiest: z.object({ date: z.string(), presses: z.number() }).nullable(),
-  keys: z.array(z.object({ label: z.string(), n: z.number() })),
+  /** id is the key's widget id, so the editor can light that very key. */
+  keys: z.array(z.object({ id: z.string().optional(), label: z.string(), n: z.number() })),
   apps: z.array(z.object({ app: z.string(), minutes: z.number() })),
   /** Badges earned in the period, newest first. */
   badges: z.array(z.object({ id: z.enum(BADGE_IDS), date: z.string() })),
+  /** The focus garden: Pomodoro focus stretches finished (a plant grows) and given up (one wilts), per day. */
+  garden: z.array(z.object({ date: z.string(), plants: z.number(), wilted: z.number() })).optional(),
 });
 export type StatsSummary = z.infer<typeof StatsSummarySchema>;
+
+const Hex = z.string().regex(/^#[0-9a-f]{6}$/i);
+/** A picture from the phone as a data: URL; the asset store still checks its type and its 1 MB limit. */
+const PhoneImage = z.string().max(1_500_000).startsWith('data:image/');
 
 export const ClientMsgSchema = z.discriminatedUnion('t', [
   z.object({
@@ -52,6 +59,21 @@ export const ClientMsgSchema = z.discriminatedUnion('t', [
     scroll: z.number().min(-50).max(50).optional(), scrollX: z.number().min(-50).max(50).optional(),
     text: z.string().max(2000).optional(), key: z.enum(['Enter', 'Backspace', 'Tab', 'Escape']).optional(),
   }),
+  /**
+   * Edit mode on the deck: change a key of the current profile, move it to x, y, or remove it. image is a data: URL
+   * the phone made (a photo or GIF), null takes the picture off. Only devices the PC lets edit can do this.
+   */
+  z.object({
+    t: z.literal('edit'), widgetId: z.string().max(64),
+    label: z.string().max(40).optional(), icon: z.string().regex(/^[a-z0-9-]{1,48}$/).nullable().optional(),
+    bg: Hex.optional(), image: PhoneImage.nullable().optional(),
+    x: z.number().int().min(0).max(11).optional(), y: z.number().int().min(0).max(7).optional(),
+    /** A Timer key's minutes, or a Pomodoro key's focus and break minutes. */
+    minutes: z.number().int().min(1).max(600).optional(), focus: z.number().int().min(1).max(180).optional(), rest: z.number().int().min(1).max(60).optional(),
+    remove: z.literal(true).optional(),
+  }),
+  /** Edit mode: the current profile's background, a ready-made one (isBackground) or a photo; image null removes the photo. */
+  z.object({ t: z.literal('background'), bg: z.string().max(200).optional(), image: PhoneImage.nullable().optional() }),
 ]);
 export type ClientMsg = z.infer<typeof ClientMsgSchema>;
 
@@ -82,6 +104,8 @@ export const WidgetViewSchema = z.object({
   /** For buttons that show a PC state: how the key looks while it is on, and whether it is on now. */
   alt: LookSchema.partial().optional(),
   active: z.boolean().optional(),
+  /** A key that opens or switches to an app: whether that app has a window open on the PC now. */
+  running: z.boolean().optional(),
   /** A level key (Volume +) that can go no further: shown greyed out, presses do nothing. */
   disabled: z.boolean().optional(),
   /** Holding the key repeats it (Volume +, Brightness −). */
@@ -101,6 +125,8 @@ export const WidgetViewSchema = z.object({
   outputs: z.array(AudioOutputSchema).optional(),
   /** Set for buttons that turn the PC off, lock it and the like: the tablet asks first and shows this text. */
   confirm: z.string().optional(),
+  /** A Timer key's minutes, or a Pomodoro key's focus and break minutes, for edit mode on the tablet. */
+  timer: z.object({ minutes: z.number().optional(), focus: z.number().optional(), rest: z.number().optional() }).optional(),
 });
 export type WidgetView = z.infer<typeof WidgetViewSchema>;
 
@@ -117,6 +143,11 @@ export const DeckViewSchema = z.object({
   tiles: z.enum(['keycap', 'sunken', 'soft', 'glass', 'pad', 'outline']).optional(),
   /** The cat under the keys, as set on the PC. */
   cat: z.object({ on: z.boolean(), name: z.string() }).optional(),
+  /** Snow and pumpkins on the keys in their season; off when the PC turned them off. */
+  season: z.boolean().optional(),
+  /** For this device: whether it may edit keys, and whether it shows "What's new" after an update. */
+  edit: z.boolean().optional(),
+  news: z.boolean().optional(),
   widgets: z.array(WidgetViewSchema),
 });
 export type DeckView = z.infer<typeof DeckViewSchema>;
@@ -128,10 +159,13 @@ export const HostMsgSchema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('blocked') }),
   z.object({ t: z.literal('timeout') }),
   z.object({ t: z.literal('deck'), view: DeckViewSchema }),
-  z.object({ t: z.literal('patch'), widgetId: z.string(), look: LookSchema.partial().optional(), value: z.string().optional(), flash: z.enum(['error', 'ok']).optional(), active: z.boolean().optional(), disabled: z.boolean().optional(), screens: z.array(ScreenSchema).optional(), level: z.number().optional(), muted: z.boolean().optional(), bluetooth: BluetoothSchema.optional(), apps: z.array(AppSoundSchema).optional(), outputs: z.array(AudioOutputSchema).optional(), big: z.string().optional() }),
-  z.object({ t: z.literal('notify'), text: z.string(), vibrate: z.boolean().optional() }),
+  z.object({ t: z.literal('patch'), widgetId: z.string(), look: LookSchema.partial().optional(), value: z.string().optional(), flash: z.enum(['error', 'ok']).optional(), active: z.boolean().optional(), running: z.boolean().optional(), disabled: z.boolean().optional(), screens: z.array(ScreenSchema).optional(), level: z.number().optional(), muted: z.boolean().optional(), bluetooth: BluetoothSchema.optional(), apps: z.array(AppSoundSchema).optional(), outputs: z.array(AudioOutputSchema).optional(), big: z.string().optional() }),
+  /** alarm: a timer or Pomodoro stretch ran out, so the deck rings as well. */
+  z.object({ t: z.literal('notify'), text: z.string(), vibrate: z.boolean().optional(), alarm: z.boolean().optional() }),
   /** What the PC is up to, for the deck's cat: music playing (it wears headphones), a Pomodoro focus running (glasses). */
-  z.object({ t: z.literal('mood'), playing: z.boolean(), focus: z.boolean(), meeting: z.boolean().optional(), timer: z.boolean().optional() }),
+  z.object({ t: z.literal('mood'), playing: z.boolean(), focus: z.boolean(), meeting: z.boolean().optional(), timer: z.boolean().optional(),
+    /** Today's focus garden: plants grown and wilted. */
+    plants: z.number().optional(), wilted: z.number().optional() }),
   z.object({ t: z.literal('stats'), summary: StatsSummarySchema }),
   /** A badge was just earned: every deck shows it for a moment. */
   z.object({ t: z.literal('badge'), id: z.enum(BADGE_IDS) }),

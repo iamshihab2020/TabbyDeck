@@ -66,7 +66,7 @@ input { -webkit-user-select: text; user-select: text; }
   -webkit-user-select: none; user-select: none;
 }
 /* Equal sides keep the folder path centred: Back on the left, Full screen and Settings on the right. */
-.bar-side { display: flex; flex: none; width: 88px; }
+.bar-side { display: flex; flex: none; min-width: 88px; }
 .bar-side.end { justify-content: flex-end; }
 .crumbs { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: center; color: var(--muted); font-size: var(--fs-3); }
 .crumb + .crumb::before { content: '›'; margin: 0 6px; color: var(--faint); }
@@ -254,3 +254,51 @@ input { -webkit-user-select: text; user-select: text; }
 .week-badges { display: flex; flex-wrap: wrap; margin: 4px 0 6px; }
 .week-badge { display: flex; align-items: center; margin: 4px 8px 4px 0; padding: 4px 10px 4px 4px; border-radius: 999px; background: var(--surface-2); font-size: var(--fs-2); }
 .week-badge .tb-badge-art { margin-right: 6px; }
+
+/* ---- edit mode: keys wiggle; tap one to change it, drag it to move it ---- */
+.deck.editing .deck-area .tb-tile { animation: tb-wiggle 280ms ease-in-out infinite alternate; touch-action: none; }
+.deck.editing .deck-area .tb-tile:nth-child(2n) { animation-direction: alternate-reverse; }
+.deck.editing .deck-area .tb-tile.tb-dragging { animation: none; z-index: 5; transition: none; box-shadow: 0 16px 32px rgba(0, 0, 0, 0.5); }
+@keyframes tb-wiggle { from { transform: rotate(-1.4deg); } to { transform: rotate(1.4deg); } }
+@media (prefers-reduced-motion: reduce) { .deck.editing .deck-area .tb-tile { animation: none; outline: 2px dashed var(--accent); outline-offset: -2px; } }
+.edit-pill { color: var(--accent); font-weight: 600; }
+.bar-btn.text { width: auto; padding: 0 12px; color: var(--accent); font-weight: 600; }
+.edit-top { display: flex; align-items: center; }
+.edit-preview { position: relative; flex: none; margin: 0 14px 0 0; }
+.swatches { display: flex; flex-wrap: wrap; margin: -5px; }
+.swatch { width: 40px; height: 40px; margin: 5px; padding: 0; border-radius: 12px; border: 2px solid transparent; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); }
+.swatch.on { border-color: var(--accent); }
+.edit-icons { display: flex; flex-wrap: wrap; max-height: 220px; overflow-y: auto; -webkit-overflow-scrolling: touch; margin: 8px -4px 0; }
+.edit-icon { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; margin: 4px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
+.edit-icon.on { border-color: var(--accent); color: var(--accent); }
+.sheet-row.start { margin-top: 0; }
+.edit-error { color: var(--danger); }
+.edit-minutes { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.edit-minutes .input { width: 110px; }
+.grow { flex: 1; }
+.bg-choices { display: flex; flex-wrap: wrap; margin: -5px; }
+.bg-choice { display: flex; align-items: flex-end; justify-content: center; width: calc(20% - 10px); min-width: 56px; height: 72px; margin: 5px; padding: 0 0 6px; border-radius: 14px; border: 2px solid transparent;
+  color: #fff; font-size: var(--fs-1); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12); }
+.bg-choice.on { border-color: var(--accent); }
+.crop-backdrop { align-items: center; }
+.crop-sheet { border-radius: 22px; text-align: center; }
+.crop-frame { position: relative; overflow: hidden; margin: 0 auto; border-radius: 14px; touch-action: none; background: #000; box-shadow: 0 0 0 2px var(--accent); }
+.crop-frame img { position: absolute; left: 0; top: 0; max-width: none; pointer-events: none; }
+.crop-zoom { display: flex; align-items: center; max-width: 360px; margin: 16px auto 0; color: var(--muted); }
+.crop-zoom input { flex: 1; margin-left: 10px; }
+
+/* ---- the focus garden on the cat's floor: a sprout for each finished focus, a drooping one for each given up ---- */
+.garden { position: absolute; left: 0; bottom: 0; display: flex; align-items: flex-end; pointer-events: none; }
+.garden svg { display: block; margin-right: 2px; animation: garden-grow 600ms var(--ease-spring) backwards; transform-origin: 50% 100%; }
+@keyframes garden-grow { from { transform: scale(0.2, 0); } }
+.week-garden { display: flex; justify-content: space-between; margin: 10px 0 0; }
+.week-garden span { display: flex; flex-direction: column-reverse; align-items: center; width: 14%; min-height: 20px; }
+@media (prefers-reduced-motion: reduce) { .garden svg { animation: none; } }
+
+/* ---- What's new, after an update ---- */
+.news-list { margin: 0; padding: 0 0 0 18px; color: var(--text); font-size: var(--fs-3); line-height: 1.45; }
+.news-list li + li { margin-top: 8px; }
+.gear-dot { position: relative; }
+.gear-dot::after { content: ''; position: absolute; top: 9px; right: 9px; width: 8px; height: 8px; border-radius: 4px; background: var(--accent); }
+.news-btn { width: 100%; margin-top: 10px; }
+.sheet-row.start .week-btn { margin-top: 0; }

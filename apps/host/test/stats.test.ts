@@ -26,7 +26,7 @@ describe('stats', () => {
     expect(w.days.at(-1)).toEqual({ date: '2026-10-22', presses: 3 });
     expect(w.total).toBe(9);
     expect(w.busiest).toEqual({ date: '2026-10-20', presses: 6 });
-    expect(w.keys).toEqual([{ label: 'Copy', n: 8 }, { label: 'Paste', n: 1 }]);
+    expect(w.keys).toMatchObject([{ label: 'Copy', n: 8 }, { label: 'Paste', n: 1 }]);
     now = new Date(2026, 10, 10);
     expect(s.summary(7).total).toBe(0); // last week's presses are out of this week
     expect(s.summary(30).total).toBe(9);
@@ -52,7 +52,7 @@ describe('stats', () => {
     expect(existsSync(path.join(dir, 'stats.json'))).toBe(true);
     expect(Object.keys(JSON.parse(readFileSync(path.join(dir, 'stats.json'), 'utf8')).days)).toEqual([dayKey(now)]); // January is gone
     const b = new Stats({ dir, native: createFakeNative(), now: () => now });
-    expect(b.summary(7).keys).toEqual([{ label: 'Lock', n: 1 }]);
+    expect(b.summary(7).keys).toEqual([{ id: 'k', label: 'Lock', n: 1 }]);
   });
   it('starts again from a damaged file', () => {
     writeFileSync(path.join(dir, 'stats.json'), '{not json');

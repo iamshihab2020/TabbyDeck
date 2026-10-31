@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { defineConfig, type Plugin } from 'vite';
 import preact from '@preact/preset-vite';
 
@@ -8,8 +9,17 @@ const classicScript = (): Plugin => ({
   transformIndexHtml: { order: 'post', handler: html => html.replace(/<script type="module" crossorigin/g, '<script defer') },
 });
 
+// The "What's new" card needs only the newest release, so the deck ships that part of the changelog, not all of it.
+const newestChangelog = (): Plugin => ({
+  name: 'tabby-newest-changelog', enforce: 'pre',
+  load(id) {
+    if (!/CHANGELOG\.md\?raw$/.test(id)) return;
+    return `export default ${JSON.stringify(readFileSync(id.replace(/\?raw$/, ''), 'utf8').split(/^(?=## )/m).slice(0, 2).join(''))};`;
+  },
+});
+
 export default defineConfig({
-  plugins: [preact(), classicScript()],
+  plugins: [preact(), classicScript(), newestChangelog()],
   base: './',
   build: {
     target: 'es2017',

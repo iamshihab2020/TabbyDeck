@@ -53,9 +53,11 @@ export class Store extends EventEmitter<StoreEvents> {
   private cfg: Settings = { ...DEFAULT_SETTINGS };
   private pending = new Set<Promise<void>>();
 
-  private firstRun: () => ProfileFile;
-  /** firstRun: the deck an empty data folder starts with (the app passes the starter deck; tests keep the one-button default). */
-  constructor(opts: { dir: string; log: Logger; firstRun?: () => ProfileFile }) { super(); this.dir = opts.dir; this.log = opts.log; this.firstRun = opts.firstRun ?? defaultProfileFile; }
+  private firstRun: () => ProfileFile[];
+  /** Whether this start made the first-run decks (the data folder had no profiles). */
+  fresh = false;
+  /** firstRun: the decks an empty data folder starts with (the app passes the starter decks; tests keep the one-button default). */
+  constructor(opts: { dir: string; log: Logger; firstRun?: () => ProfileFile[] }) { super(); this.dir = opts.dir; this.log = opts.log; this.firstRun = opts.firstRun ?? (() => [defaultProfileFile()]); }
 
   get assetsDir() { return path.join(this.dir, 'assets'); }
   private profilePath(id: string) {
@@ -75,7 +77,7 @@ export class Store extends EventEmitter<StoreEvents> {
         else this.files.set(value.profile.id, value);
       }
     }
-    if (this.files.size === 0) { const d = this.firstRun(); this.files.set(d.profile.id, d); this.persistProfile(d.profile.id); }
+    if (this.files.size === 0) for (const d of this.firstRun()) { this.fresh = true; this.files.set(d.profile.id, d); this.persistProfile(d.profile.id); }
     const devs = await readJsonOr(path.join(this.dir, 'devices.json'), z.array(DeviceSchema), () => [], this.log);
     this.devs = devs.value; if (devs.created) this.persistDevices();
     const vars = await readJsonOr(path.join(this.dir, 'variables.json'), z.array(VariableSchema), () => [], this.log);

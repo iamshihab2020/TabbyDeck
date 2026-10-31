@@ -125,3 +125,18 @@ describe('key colours for the styles', () => {
     expect(rgbVar('--key-rgb', 'red')).toEqual({});
   });
 });
+
+describe('icon sprite', () => {
+  it('gives every path command a whole set of numbers', () => {
+    // Per SVG path grammar: a second "." starts a new number. Arc flags can run together ("0,0,1" or "001").
+    const per: Record<string, number> = { m: 2, l: 2, h: 1, v: 1, c: 6, s: 4, q: 4, t: 2, a: 7, z: 0 };
+    const bad: string[] = [];
+    for (const [symbol, id] of sprite.matchAll(/<symbol id="([^"]+)"[\s\S]*?<\/symbol>/g)) {
+      for (const [, cmd, args] of [...symbol.matchAll(/ d="([^"]+)"/g)].flatMap(d => [...d[1].matchAll(/([a-z])([^a-z]*)/gi)])) {
+        const k = cmd.toLowerCase(), n = (args.match(/-?(\d+\.?\d*|\.\d+)(e-?\d+)?/g) ?? []).length;
+        if (k === 'a' ? n % 7 !== 0 && !/[01]{2}/.test(args) : per[k] ? n === 0 || n % per[k] !== 0 : n !== 0) bad.push(`${id} ${cmd}${args}`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+});

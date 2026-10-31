@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { PRESETS } from '@tabbydeck/shared/presets';
-import { ProfileFileSchema, starterProfileFile } from '@tabbydeck/shared';
+import { ProfileFileSchema, starterProfileFiles } from '@tabbydeck/shared';
 import { createHost, type Host } from '../src/host.ts';
 import { validateParams } from '../src/engine/params.ts';
 import { nullLogger } from '../src/log/logger.ts';
@@ -16,16 +16,21 @@ describe('presets', () => {
   it('have unique ids', () => {
     expect(new Set(PRESETS.map(p => p.id)).size).toBe(PRESETS.length);
   });
-  it('the starter deck is a full, valid 7 x 5 deck whose every key calls a real action with valid parameters', () => {
-    const f = ProfileFileSchema.parse(starterProfileFile());
-    expect([f.profile.cols, f.profile.rows, f.widgets.length]).toEqual([7, 5, 35]);
-    expect(new Set(f.widgets.map(w => `${w.x},${w.y}`)).size).toBe(35);
-    for (const w of f.widgets) {
-      const s = (w.config as { triggers: { press: { action: string; params: unknown }[] } }).triggers.press[0];
-      const def = host.registry.get(s.action);
-      expect(def, `${w.look.label}: ${s.action}`).toBeDefined();
-      const r = validateParams(def!.schema, s.params);
-      expect(r.ok ? '' : `${w.look.label}: ${r.error}`).toBe('');
+  it('the starter decks are full, valid 8 x 6 decks whose every step calls a real action with valid parameters', () => {
+    const files = starterProfileFiles().map(f => ProfileFileSchema.parse(f));
+    expect(files.map(f => f.profile.name)).toEqual(['Main', 'Work']);
+    for (const f of files) {
+      expect([f.profile.cols, f.profile.rows, f.widgets.length]).toEqual([8, 6, 48]);
+      expect(new Set(f.widgets.map(w => `${w.x},${w.y}`)).size).toBe(48);
+      for (const w of f.widgets) {
+        const t = (w.config as { triggers: Record<string, { action: string; params: unknown }[]> }).triggers;
+        for (const s of Object.values(t).flat()) {
+          const def = host.registry.get(s.action);
+          expect(def, `${f.profile.name} ${w.look.label}: ${s.action}`).toBeDefined();
+          const r = validateParams(def!.schema, s.params);
+          expect(r.ok ? '' : `${f.profile.name} ${w.look.label}: ${r.error}`).toBe('');
+        }
+      }
     }
   });
   it('every step names a real action with valid parameters', () => {

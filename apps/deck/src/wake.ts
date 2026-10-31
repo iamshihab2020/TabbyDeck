@@ -6,6 +6,7 @@
  * background, so every touch re-arms it if it has stopped.
  */
 export function keepAwake(): () => void {
+  if (window.TabbyAndroid) return () => {}; // the Android app keeps the screen on itself
   let lock: { release(): Promise<void> } | null = null;
   let video: HTMLVideoElement | null = null;
   const nav = navigator as Navigator & { wakeLock?: { request(t: 'screen'): Promise<{ release(): Promise<void> }> } };

@@ -100,6 +100,10 @@ export const DeviceSchema = z.object({
   profileId: IdSchema.optional(),
   /** Switch profiles with the app in front (profiles list their apps). On unless turned off. */
   followApps: z.boolean().optional(),
+  /** Keys can be changed from this device's deck. On unless turned off (a shared tablet). */
+  edit: z.boolean().optional(),
+  /** The deck shows a "What's new" card after an update. On unless turned off. */
+  news: z.boolean().optional(),
   tokenHash: z.string().optional(),
   lastSeen: z.string(),
   createdAt: z.string(),
@@ -128,6 +132,10 @@ export const SettingsSchema = z.object({
   /** The cat on every deck (Customize page): shown, and its name. */
   catOn: z.boolean().default(true),
   catName: z.string().trim().max(20).default('Tabby'),
+  /** Snow on the keys in December, pumpkins at Halloween. */
+  seasonOn: z.boolean().default(true),
+  /** The version whose "What's new" the editor last showed. */
+  newsSeen: z.string().max(32).optional(),
 });
 export type Settings = z.infer<typeof SettingsSchema>;
 
@@ -145,7 +153,7 @@ export const DEFAULT_LOOK: Look = {
 };
 
 export const DEFAULT_SETTINGS: Settings = {
-  schemaVersion: 1, port: 8191, editorPort: 8192, bindAddress: '', autoStart: false, theme: 'dark', openEditorOnStart: true, guideDone: false, catOn: true, catName: 'Tabby',
+  schemaVersion: 1, port: 8191, editorPort: 8192, bindAddress: '', autoStart: false, theme: 'dark', openEditorOnStart: true, guideDone: false, catOn: true, catName: 'Tabby', seasonOn: true,
 };
 
 /** A new profile file with an empty root folder. */

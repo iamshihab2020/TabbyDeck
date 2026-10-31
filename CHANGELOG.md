@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.4.0 (2026-10-31)
+
+### On the phone
+- Android app, for Android 5.0 and newer: it finds the PC on the Wi-Fi by itself and shows the deck full screen, with the screen kept on. When the PC gets a new address, the app finds it again; pair it once more there, as in the browser. Back shows the list of PCs, and so does Change PC in the deck's settings. The deck comes from the PC, so the app stays in step with it.
+- Edit keys on the phone: in the deck's settings, Edit keys makes the keys wiggle. Tap one to change its label, icon and colour, or to delete it; drag it to move it. The editor on the PC and every other phone update at once. The PC can turn editing off for a device on the Devices page.
+- Photos and GIFs on keys: in edit mode, give a key a picture from the gallery or take one with the camera. Photos are cropped to the key's shape and made smaller so the deck stays fast; GIFs keep moving.
+- Key sounds: Silent, Soft click, Keyboard or Pop, chosen in the deck's settings. Each phone keeps its own, and iPhones get a feel for a press without vibration.
+- Backgrounds: in edit mode, Background sets a colour, a gradient or a photo behind the keys of the profile. Glass keys show it through them.
+- Focus garden: each Pomodoro focus that runs to the end grows a plant on the cat's floor; one you reset part way wilts. Your week shows the week's garden.
+- Seasonal touches: snow settles on the keys in December, and pumpkins sit on some keys in the last week of October.
+- Timer alarm: when a Timer or Pomodoro stretch runs out, the deck rings as well as showing the message. Choose Chime, Bell or Off in the deck's settings; each phone keeps its own.
+- Timer minutes on the phone: in edit mode, a Timer key shows its minutes and a Pomodoro key its focus and break minutes, to change there.
+- What's new: after an update the deck shows what changed, once. It stays in the deck's settings under What's new.
+
+### Keys
+- Temperature: a key shows the temperature outside in the city you type (from the free Open-Meteo service, refreshed every 15 minutes), with the city's name under it, or how hot the PC is inside. Choose °C or °F. Some PCs don't report their temperature to apps; there the key shows a dash and Not reported. Add it from Info: Weather or CPU temp.
+
+- Snip area and Snip window: open the snip bar with Rectangle or Window already picked. Add them from Windows.
+
+### New installs
+- A fresh install starts with two 8 by 6 decks. Main has sound, apps, browsers, CPU temperature, CPU and memory, editing with weather, the clock and focus, window placement and the trackpad, and screens and power. Work has coding apps, two rows of Claude Code keys, editor shortcuts, PC info and windows. App keys find the app on the PC and take its icon; keys for apps the PC does not have stay off the deck until it is installed. Existing setups are not touched.
+
+### Editor
+- Customize: choose each profile's background, a colour, a gradient or a photo, and turn the seasonal touches on or off.
+- Devices: each device has Can edit keys and What's new switches, for a shared tablet.
+- Stats: the focus garden for the period.
+- Deck page: each profile in the list shows a small map of its keys in their colours, with its grid size. The deck's name sits large above it with how many keys it has and how many are hidden because their apps are not on this PC. Numbers along the top and side of the deck light the columns and rows the selected key covers. Columns, rows and spacing moved under the deck.
+- Key settings: the preview sits on the deck's own background and key style. Look starts with ready colour pairs that show the key's icon, then Icon, Label and Shape in short sections. Actions shows the steps as a timeline with each step's detail, waits as small marks between steps, and a Try button on each.
+- Integrations: search every action, jump between groups from the index, and read what each action does. Every action now has a short description.
+- What's new: the first time the editor opens after an update it shows what changed. Settings has it again under What's new.
+
+### Fixes
+- The bird on the Early bird badge drew wrongly.
+
 ## 0.3.0 (2026-10-25)
 
 ### Ready-made decks

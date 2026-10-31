@@ -3,6 +3,7 @@ import type { ActionRegistry } from './registry.ts';
 import type { Native } from '../native/types.ts';
 import type { Store } from '../store/store.ts';
 import type { Live } from './states.ts';
+import { Weather } from './weather.ts';
 
 /** A timer or Pomodoro key's own clock. left is what remains when paused; endsAt is set while it runs. */
 interface Run { left: number; endsAt: number | null; rest: boolean }
@@ -17,19 +18,22 @@ export const clockText = (ms: number) => {
 const minutes = (v: unknown, fallback: number) => Math.max(1, Math.min(600, Number(v) || fallback)) * 60_000;
 
 /**
- * Keys whose face changes by itself: CPU, RAM, battery, the time, timers and Pomodoro. Once a second it works out what
+ * Keys whose face changes by itself: CPU, RAM, battery, temperature, the time, timers and Pomodoro. Once a second it works out what
  * each one shows and patches the keys whose text changed. Timers run here on the PC, so every deck shows the same time.
  */
 export class InfoKeys {
   private runs = new Map<string, Run>();
   private shown = new Map<string, string>();
   private sample = { cpu: 0, ram: 0 };
+  /** c: undefined until the first read comes back, null when the PC does not report one. */
+  private temp = { c: undefined as number | null | undefined, at: -Infinity, busy: false };
+  private weather: Weather;
 
-  constructor(private d: { store: Store; native: Native; patch?: (widgetId: string, live: Live) => void; notify?: (text: string) => void; now?: () => number }) {}
+  constructor(private d: { store: Store; native: Native; patch?: (widgetId: string, live: Live) => void; notify?: (text: string) => void; onFocus?: (kind: 'grow' | 'wilt') => void; now?: () => number; weather?: Weather }) { this.weather = d.weather ?? new Weather({ now: d.now }); }
 
   private now() { return this.d.now?.() ?? Date.now(); }
   private static step(w: Widget) { return w.config.kind === 'button' ? w.config.triggers.press?.[0] : undefined; }
-  private static isInfo(w: Widget) { const a = InfoKeys.step(w)?.action; return a === 'info.show' || a === 'timer.countdown' || a === 'timer.pomodoro'; }
+  private static isInfo(w: Widget) { const a = InfoKeys.step(w)?.action; return a === 'info.show' || a === 'info.temperature' || a === 'timer.countdown' || a === 'timer.pomodoro'; }
 
   /** A timer key's length: the timer's minutes, or for Pomodoro the focus or the break. */
   private full(w: Widget, rest: boolean) {
@@ -51,11 +55,33 @@ export class InfoKeys {
       const d = new Date(this.now());
       return { big: d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }), look: { label: d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) } };
     }
+    if (s.action === 'info.temperature') {
+      const deg = (c: number) => s.params.unit === 'f' ? `${Math.round(c * 9 / 5 + 32)}°F` : `${Math.round(c)}°C`;
+      if (s.params.source === 'cpu') {
+        const c = this.cpuTemp();
+        // A reading carries the key's own label: phones keep a patched label, so an earlier "Not reported" would stay.
+        return c === undefined ? { big: '…' } : c === null ? { big: '—', look: { label: 'Not reported' } } : { big: deg(c), look: { label: w.look.label } };
+      }
+      const city = String(s.params.city ?? '');
+      if (!city.trim()) return { big: '—', look: { label: 'Set a city' } };
+      const r = this.weather.get(city);
+      return !r ? { big: '…' } : 'error' in r ? { big: '—', look: { label: r.error } } : { big: deg(r.tempC), look: { label: r.place } };
+    }
     const r = this.runs.get(w.id);
     const live: Live = { big: clockText(r ? this.left(r) : this.full(w, false)), active: !!r?.endsAt };
     if (s.action === 'timer.pomodoro') live.look = { label: r?.rest ? 'Break' : 'Focus' };
     return live;
   };
+
+  /** The last CPU temperature, read again in the background every 10 seconds while a key shows it. */
+  private cpuTemp(): number | null | undefined {
+    const t = this.temp;
+    if (!t.busy && this.now() - t.at > 10_000) {
+      t.busy = true;
+      void this.d.native.sysinfo.cpuTemp().then(c => { t.c = c; }, () => { t.c = null; }).finally(() => { t.at = this.now(); t.busy = false; });
+    }
+    return t.c;
+  }
 
   /** Whether a Pomodoro key is in a focus stretch now (running, not on its break). */
   focusing(): boolean {
@@ -80,8 +106,12 @@ export class InfoKeys {
     else { r.left = this.left(r); r.endsAt = null; }
     this.show(w);
   }
-  /** Back to the start: stopped, full length, focus. */
-  reset(w: Widget): void { this.runs.delete(w.id); this.show(w); }
+  /** Back to the start: stopped, full length, focus. Giving up a Pomodoro focus stretch part way wilts a plant. */
+  reset(w: Widget): void {
+    const r = this.runs.get(w.id);
+    if (r && !r.rest && InfoKeys.step(w)?.action === 'timer.pomodoro' && this.left(r) > 0) this.d.onFocus?.('wilt');
+    this.runs.delete(w.id); this.show(w);
+  }
 
   private show(w: Widget) {
     const live = this.liveOf(w), text = JSON.stringify(live);
@@ -100,6 +130,7 @@ export class InfoKeys {
         const name = w.look.label || 'Timer';
         if (InfoKeys.step(w)!.action === 'timer.pomodoro') {
           r.rest = !r.rest; r.endsAt = this.now() + this.full(w, r.rest);
+          if (r.rest) this.d.onFocus?.('grow');
           this.d.notify?.(r.rest ? 'Time for a break' : 'Break is over. Back to focus');
         } else { this.runs.delete(w.id); this.d.notify?.(`${name} is done`); }
       }
@@ -123,6 +154,15 @@ export function registerInfo(registry: ActionRegistry, deps: { store: Store; inf
   registry.register({
     id: 'info.show', name: 'Show PC info', group: 'Info', description: 'The key shows the CPU or memory in use, the battery, or the time, and keeps it up to date',
     schema: { show: { type: 'enum', title: 'Show', options: ['cpu', 'ram', 'battery', 'clock'], labels: ['CPU', 'Memory (RAM)', 'Battery', 'Time and date'], default: 'cpu' } },
+    run: async () => {}, // the key only shows; pressing it does nothing
+  });
+  registry.register({
+    id: 'info.temperature', name: 'Temperature', group: 'Info', description: 'The key shows the temperature outside in a city (from Open-Meteo, every 15 minutes), or how hot the PC is inside on PCs that report it',
+    schema: {
+      source: { type: 'enum', title: 'Show', options: ['weather', 'cpu'], labels: ['Weather outside', 'CPU'], default: 'weather' },
+      city: { type: 'string', title: 'City (for weather)', default: '' },
+      unit: { type: 'enum', title: 'Unit', options: ['c', 'f'], labels: ['°C', '°F'], default: 'c' },
+    },
     run: async () => {}, // the key only shows; pressing it does nothing
   });
   registry.register({

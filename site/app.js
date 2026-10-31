@@ -330,3 +330,14 @@ new IntersectionObserver((es, o) => {
     requestAnimationFrame(tick);
   }
 }, { threshold: .25 }).observe(board);
+
+/* ---------- The Android app: it looks for the PC, finds it, and a tap opens the deck ---------- */
+const aphone = $('#aphone');
+aphone.querySelectorAll('.a-deck i').forEach((k, i) => k.style.setProperty('--i', i));
+new IntersectionObserver((es, o) => {
+  if (!es[0].isIntersecting) return; o.disconnect();
+  if (calm) return aphone.classList.add('found');
+  later(1900, () => aphone.classList.add('found'));
+  later(3400, () => aphone.classList.add('tap'));
+  later(3700, () => aphone.classList.add('open'));
+}, { threshold: .5 }).observe(aphone);

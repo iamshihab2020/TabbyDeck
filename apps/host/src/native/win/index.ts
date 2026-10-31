@@ -14,6 +14,13 @@ const battery = () => {
   return { percent: s.BatteryLifePercent, charging: s.ACLineStatus === 1 };
 };
 
+// The Thermal Zone counters are readable without admin (MSAcpi_ThermalZoneTemperature is not); tenths of a kelvin.
+const THERMAL = '(Get-CimInstance Win32_PerfFormattedData_Counters_ThermalZoneInformation | Measure-Object HighPrecisionTemperature -Maximum).Maximum';
+const cpuTemp = (ps: PowerShellHost) => async () => {
+  const c = Number((await ps.call(THERMAL, 8000).catch(() => '')).trim()) / 10 - 273.15;
+  return c > 0 && c < 150 ? c : null;
+};
+
 /** The Windows native layer. The PowerShell host starts lazily on the first audio or clipboard call. */
 export function createWinNative(opts: { dataDir: string }): Native {
   const ps = new PowerShellHost();
@@ -22,7 +29,7 @@ export function createWinNative(opts: { dataDir: string }): Native {
     system: createWinSystem(ps, opts.dataDir),
     audio: createWinAudio(ps),
     display: createWinDisplay(ps),
-    sysinfo: createSysInfo(battery),
+    sysinfo: createSysInfo(battery, cpuTemp(ps)),
     dispose: async () => ps.dispose(),
   };
 }

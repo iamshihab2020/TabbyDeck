@@ -31,6 +31,12 @@ describe('system actions call the native layer', () => {
     await expect(run('system.openUrl', { url: 'javascript:alert(1)' })).rejects.toThrow(/not allowed/);
     await expect(run('system.openUrl', { url: 'file:///C:/x.exe' })).rejects.toThrow(/not allowed/);
   });
+  it('openUrl turns the retired snip links into the current ones', async () => {
+    await run('system.openUrl', { url: 'ms-screenclip:?clippingMode=Window' });
+    await run('system.openUrl', { url: 'ms-screenclip:' });
+    await run('system.openUrl', { url: 'ms-screenclip://capture/image?freeform' });
+    expect(native.calls.map(c => c.args[0])).toEqual(['ms-screenclip://capture/image?window', 'ms-screenclip://capture/image?rectangle', 'ms-screenclip://capture/image?freeform']);
+  });
   it('browser opens a profile of this PC, on a website if given, and nothing else', async () => {
     await run('system.browser', { profile: 'chrome:Profile 5' });
     await run('system.browser', { profile: 'chrome:Default', url: 'https://github.com' });

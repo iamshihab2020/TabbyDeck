@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 
-export interface Mood { playing: boolean; focus: boolean; meeting?: boolean; timer?: boolean }
+export interface Mood { playing: boolean; focus: boolean; meeting?: boolean; timer?: boolean; plants?: number; wilted?: number }
 export type Hat = 'santa' | 'party' | 'witch' | 'hard';
 type Pose = 'sit' | 'walk' | 'sleep' | 'stretch';
 
@@ -79,6 +79,7 @@ export function Cat({ mood, chase, size, name }: { mood: Mood; chase: { x: numbe
 
   return (
     <div class="cat-floor" ref={floor} style={{ height: `${HEIGHT + 4}px` }}>
+      <Garden plants={mood.plants ?? 0} wilted={mood.wilted ?? 0} size={Math.round(HEIGHT * 0.6)} />
       {x !== null && (
         <button type="button" class={`tb-cat ${pose}`} aria-label={`${name}, the cat`} tabIndex={-1}
           style={{ left: `${x}px`, width: `${WIDTH}px`, height: `${HEIGHT}px`, transitionDuration: `${dur}ms`, fontSize: `${Math.round(size / 5.5)}px` }}
@@ -93,6 +94,26 @@ export function Cat({ mood, chase, size, name }: { mood: Mood; chase: { x: numbe
         </button>
       )}
     </div>
+  );
+}
+
+/** Today's focus garden along the cat's floor, from the left: grown plants first, then wilted ones. 12 at most. */
+function Garden({ plants, wilted, size }: { plants: number; wilted: number; size: number }) {
+  const grown = Math.min(12, plants), dead = Math.min(12 - grown, wilted);
+  const all: boolean[] = [...Array(grown).fill(false), ...Array(dead).fill(true)];
+  if (!all.length) return null;
+  return <div class="garden" aria-label={`Focus garden: ${plants} grown, ${wilted} wilted today`} role="img">{all.map((w, i) => <Sprout key={i} size={size} wilted={w} n={i} />)}</div>;
+}
+
+/** One plant of the focus garden: leaves and a flower, or a drooping brown stem for a focus given up. */
+export function Sprout({ size, wilted, n = 0 }: { size: number; wilted: boolean; n?: number }) {
+  const petal = ['#f9a8d4', '#fcd34d', '#93c5fd', '#fda4af'][n % 4];
+  return (
+    <svg width={Math.round(size * 0.6)} height={size} viewBox="0 0 12 20" aria-hidden="true">
+      {wilted
+        ? <g stroke="#8a6a3a" stroke-width="1.4" fill="none" stroke-linecap="round"><path d="M6 20 V12 q0 -3 -3.5 -2" /><path d="M6 15 q2.5 -1 3.5 1.5" /></g>
+        : <g><path d="M6 20 V8" stroke="#3f8f3a" stroke-width="1.4" stroke-linecap="round" /><ellipse cx="3.6" cy="13.5" rx="2.6" ry="1.3" transform="rotate(-25 3.6 13.5)" fill="#4caf50" /><ellipse cx="8.4" cy="11" rx="2.6" ry="1.3" transform="rotate(25 8.4 11)" fill="#5cbf5a" /><circle cx="6" cy="6.5" r="2.4" fill={petal} /><circle cx="6" cy="6.5" r="0.9" fill="#fff7d6" /></g>}
+    </svg>
   );
 }
 
