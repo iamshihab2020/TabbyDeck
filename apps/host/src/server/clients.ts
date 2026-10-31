@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 import type { IncomingMessage } from 'node:http';
 import type { WebSocket } from 'ws';
-import { ClientMsgSchema, panelOf, type HostMsg, type Look, type TriggerKind, type Widget } from '@tabbydeck/shared';
+import { ClientMsgSchema, panelOf, type HostMsg, type Look, type ProfileFile, type TriggerKind, type Widget } from '@tabbydeck/shared';
 import type { Logger } from '../log/logger.ts';
 import type { Store } from '../store/store.ts';
 import type { Pairing } from '../auth/pairing.ts';
@@ -41,6 +41,9 @@ export class Clients extends EventEmitter<ClientsEvents> {
   /** The last seven days, for the phone's "Your week" card. */
   statsOf: () => import('@tabbydeck/shared').StatsSummary | null = () => null;
   onPointer: (c: ClientSession, m: Extract<import('@tabbydeck/shared').ClientMsg, { t: 'pointer' }>) => void = () => {};
+  /** Edit mode on a deck: a key of the device's current profile, or that profile's background. Already checked here. */
+  onEdit: (c: ClientSession, f: ProfileFile, w: Widget, m: Extract<import('@tabbydeck/shared').ClientMsg, { t: 'edit' }>) => void = () => {};
+  onBackground: (c: ClientSession, m: Extract<import('@tabbydeck/shared').ClientMsg, { t: 'background' }>) => void = () => {};
 
   constructor(opts: { store: Store; pairing: Pairing; sessions: Sessions; log: Logger; onPress: PressFn }) {
     super();
@@ -112,6 +115,14 @@ export class Clients extends EventEmitter<ClientsEvents> {
       const w = this.store.widget(m.widgetId), f = this.store.profile(c.profileId);
       if (!w || !f?.widgets.includes(w) || panelOf(w) !== 'trackpad') return this.log.debug('clients', 'pointer from a deck without the trackpad', { widgetId: m.widgetId });
       this.onPointer(c, m);
+    } else if (m.t === 'edit' || m.t === 'background') {
+      if (this.store.device(c.deviceId!)?.edit === false) return this.send(c, { t: 'notify', text: 'Editing is turned off for this device in TabbyDeck on your PC' });
+      const f = this.store.profile(c.profileId);
+      if (!f) return;
+      if (m.t === 'background') return this.onBackground(c, m);
+      const w = this.store.widget(m.widgetId);
+      if (!w || !f.widgets.includes(w)) return this.log.debug('clients', 'edit of a widget outside the current profile', { widgetId: m.widgetId });
+      this.onEdit(c, f, w, m);
     } else if (m.t === 'profile') {
       if (this.store.profile(m.profileId)) { c.home = undefined; this.goToProfile(c, m.profileId); }
       else this.log.debug('clients', 'unknown profile requested', { profileId: m.profileId });
@@ -160,7 +171,11 @@ export class Clients extends EventEmitter<ClientsEvents> {
     this.pushDeck(c);
   }
   private pushDeck(c: Conn) {
-    try { this.send(c, { t: 'deck', view: buildDeckView(this.store, c.profileId, c.folderId, this.liveOf, this.hidden) }); }
+    try {
+      const d = c.deviceId ? this.store.device(c.deviceId) : undefined;
+      const view = buildDeckView(this.store, c.profileId, c.folderId, this.liveOf, this.hidden);
+      this.send(c, { t: 'deck', view: { ...view, edit: d?.edit !== false, news: d?.news !== false } });
+    }
     catch (e) { this.log.error('clients', 'deck view failed', { error: String(e) }); }
   }
   private send(c: Conn, m: HostMsg) { if (c.sock.readyState === 1) c.sock.send(JSON.stringify(m)); }
@@ -194,8 +209,8 @@ export class Clients extends EventEmitter<ClientsEvents> {
   }
   /** Send to every paired device that is connected. */
   broadcast(m: HostMsg): void { for (const c of this.conns) if (c.authed) this.send(c, m); }
-  notify(target: string | 'all', text: string, vibrate = false): void {
-    for (const c of this.conns) if (c.authed && (target === 'all' || c.deviceId === target)) this.send(c, { t: 'notify', text, vibrate });
+  notify(target: string | 'all', text: string, vibrate = false, alarm = false): void {
+    for (const c of this.conns) if (c.authed && (target === 'all' || c.deviceId === target)) this.send(c, { t: 'notify', text, vibrate, ...(alarm ? { alarm } : {}) });
   }
   switchProfile(deviceId: string, profileId: string): void { for (const c of this.conns) if (c.authed && c.deviceId === deviceId) { c.home = undefined; this.goToProfile(c, profileId); } }
   /**

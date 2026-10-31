@@ -37,7 +37,7 @@ export function registerKeyboard(registry: ActionRegistry, deps: { input: Native
   });
 
   registry.register({
-    id: 'keyboard.release', name: 'Release keys', group: 'Keyboard',
+    id: 'keyboard.release', name: 'Release keys', description: 'Lets go of keys held by a Hold keys step', group: 'Keyboard',
     schema: { hotkey: { type: 'hotkey', title: 'Keys', required: true } },
     run: async p => { for (const vk of keysOf(p.hotkey).reverse()) held.keyUp(vk); },
   });

@@ -3,8 +3,9 @@ import type { TileStyle } from '@tabbydeck/shared';
 import { useApi, useSnapshot } from '../state.ts';
 import { StyleCards, styleName } from '../components/KeyStyle.tsx';
 import { toast } from '../components/Toast.tsx';
+import { BACKGROUNDS } from '@tabbydeck/shared/backgrounds';
 
-/** How TabbyDeck looks and feels on phones and tablets: the key style, and the cat. */
+/** How TabbyDeck looks and feels on phones and tablets: the key style, the background, the cat and the seasons. */
 export function CustomizePage() {
   const api = useApi();
   const { state } = useSnapshot();
@@ -34,8 +35,62 @@ export function CustomizePage() {
       </div>
       <StyleCards file={one ?? profiles[0]} on={one ? styleOf(one.profile.id) : same ? styleOf(profiles[0].profile.id) : undefined}
         used={one ? undefined : used} onPick={s => void pick(s)} />
+      <BackgroundSettings ids={one ? [one.profile.id] : profiles.map(f => f.profile.id)} name={one?.profile.name} current={(one ?? profiles[0]).profile} />
       <CatSettings />
+      <SeasonSettings />
     </section>
+  );
+}
+
+/** Behind the keys: a ready-made colour or gradient, your own colour, or a photo. Phones can set it too, in edit mode. */
+function BackgroundSettings({ ids, name, current }: { ids: string[]; name?: string; current: { bg: string; bgImage?: string } }) {
+  const api = useApi();
+  const set = async (patch: { bg?: string; bgImage?: string | null }, text: string) => {
+    for (const id of ids) await api.cmd('profile.update', { id, patch }).catch(() => {});
+    toast(name ? `${name}: ${text}` : `Every profile: ${text}`, 'ok');
+  };
+  const upload = (f: File | undefined) => {
+    if (!f) return;
+    if (f.size > 1024 * 1024) return toast('That image is over 1 MB. Use a smaller one.', 'error');
+    const r = new FileReader();
+    r.onload = () => void api.cmd<{ id: string }>('asset.upload', { name: f.name, dataUrl: String(r.result) }).then(a => set({ bgImage: a.id }, 'photo background')).catch(() => {});
+    r.readAsDataURL(f);
+  };
+  const plain = /^#[0-9a-f]{6}$/i.test(current.bg) ? current.bg : '#121110';
+  return (
+    <>
+      <h2 class="custom-h">Background</h2>
+      <p class="muted">Behind the keys on every phone and tablet. Glass keys show it through them. A photo covers the colour.</p>
+      <div class="bg-choices" role="radiogroup" aria-label="Background">
+        {BACKGROUNDS.map(b => {
+          const on = !current.bgImage && current.bg === b.bg;
+          return <button key={b.name} type="button" role="radio" aria-checked={on} class={on ? 'bg-choice on' : 'bg-choice'} style={{ background: b.bg }} onClick={() => void set({ bg: b.bg, bgImage: null }, `${b.name} background`)}><span>{b.name}</span></button>;
+        })}
+      </div>
+      <div class="bg-actions">
+        <label class="btn small">Your colour<input type="color" value={plain} onChange={e => void set({ bg: (e.target as HTMLInputElement).value, bgImage: null }, 'your colour')} /></label>
+        <label class="btn small">Photo<input type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={e => { const i = e.target as HTMLInputElement; upload(i.files?.[0]); i.value = ''; }} /></label>
+        {current.bgImage && <button type="button" class="btn small" onClick={() => void set({ bgImage: null }, 'photo removed')}>Remove photo</button>}
+      </div>
+    </>
+  );
+}
+
+/** Snow on the keys in December, pumpkins in the last week of October. */
+function SeasonSettings() {
+  const api = useApi();
+  const { state } = useSnapshot();
+  const on = state!.settings.seasonOn !== false;
+  const save = (seasonOn: boolean) => void api.cmd('settings.update', { patch: { seasonOn } }).catch(() => {});
+  return (
+    <>
+      <h2 class="custom-h">Seasonal touches</h2>
+      <p class="muted">Snow settles on the tops of the keys in December, and pumpkins sit on some keys in the last week of October.</p>
+      <div class="segmented cat-toggle" role="radiogroup" aria-label="Seasonal touches">
+        <button type="button" role="radio" aria-checked={on} class={on ? 'seg on' : 'seg'} onClick={() => save(true)}>On</button>
+        <button type="button" role="radio" aria-checked={!on} class={!on ? 'seg on' : 'seg'} onClick={() => save(false)}>Off</button>
+      </div>
+    </>
   );
 }
 

@@ -52,7 +52,9 @@ for (const n of [...new Set(WANT)]) {
   if (!existsSync(f)) { missing.push(n); continue; }
   const svg = readFileSync(f, 'utf8');
   // One decimal is visually lossless on a 256-unit grid and trims the sprite noticeably.
-  const inner = svg.replace(/\d+\.\d{2,}/g, m => String(Math.round(Number(m) * 10) / 10)).replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '').replace(/\s+/g, ' ').trim();
+  // In "21.95.11" the second dot starts a new number (.11), so a whole result keeps its ".0": "22.11" would be one number.
+  const round = (m, at, s) => { const r = String(Math.round(Number(m) * 10) / 10); return s[at + m.length] === '.' && !r.includes('.') ? `${r}.0` : r; };
+  const inner = svg.replace(/\d+\.\d{2,}/g, round).replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '').replace(/\s+/g, ' ').trim();
   symbols.push(`<symbol id="i-${n}" viewBox="0 0 256 256">${inner}</symbol>`);
   names.push(n);
 }

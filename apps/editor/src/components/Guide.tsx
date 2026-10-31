@@ -99,7 +99,7 @@ interface TourStep { target: string; title: string; text: string; fallback?: str
 // fallback target and says so in its text.
 const STEPS: TourStep[] = [
   { target: '.slot', fallback: '.canvas-grid', title: 'Add a button', text: 'Click any empty cell. Choose a ready-made button, or open Apps on this PC to add any installed app with its own icon.' },
-  { target: '.grid-controls', title: 'Columns and rows', text: 'Make the grid bigger or smaller here. Gap sets the space between buttons. The tablet follows at once.' },
+  { target: '.stand-size', title: 'Columns and rows', text: 'Make the grid bigger or smaller here, under the deck. Spacing sets the space between buttons. The tablet follows at once.' },
   { target: '.canvas-tile', fallback: '.canvas-grid', title: 'Move and resize', text: 'Drag a button to move it; the others make room. Drag its corner to make it bigger. Right-click for copy, duplicate and delete.' },
   { target: '.inspector', title: 'Look and actions', text: 'Select a button to change it here. Look sets the label, icon and colours. Actions sets what happens on press, hold or double tap, and Try it now runs it on this PC.' },
   { target: '.tree', title: 'Profiles and folders', text: 'Keep separate decks, for example Work and Games, and folders that open more buttons.' },

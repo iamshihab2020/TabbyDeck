@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The deck's own colours (libs/ui/src/tokens.css). -->
+<resources>
+    <color name="bg">#121110</color>
+    <color name="surface">#1a1816</color>
+    <color name="surface_2">#221f1c</color>
+    <color name="border">#2e2a26</color>
+    <color name="text">#efeae3</color>
+    <color name="muted">#a8a095</color>
+    <color name="faint">#7a7268</color>
+    <color name="accent">#f5a524</color>
+    <color name="accent_ink">#2a1a00</color>
+</resources>

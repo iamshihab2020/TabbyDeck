@@ -33,6 +33,10 @@ describe('client message validation', () => {
   it('rejects press with kind tap', () => {
     expect(ClientMsgSchema.safeParse({ t: 'press', widgetId: 'a', kind: 'tap' }).success).toBe(false);
   });
+  it('takes only a #rrggbb key colour from a phone edit, so nothing else reaches the key\'s style', () => {
+    expect(ClientMsgSchema.safeParse({ t: 'edit', widgetId: 'a', bg: '#3b2a4d' }).success).toBe(true);
+    for (const bg of ['red', '#fff', 'url(x)', '#000000; background-image: url(x)']) expect(ClientMsgSchema.safeParse({ t: 'edit', widgetId: 'a', bg }).success).toBe(false);
+  });
   it('rejects editor cmd with an unknown command name', () => {
     expect(EditorMsgSchema.safeParse({ t: 'cmd', id: '1', name: 'nuke', args: {} }).success).toBe(false);
   });

@@ -33,32 +33,46 @@ export function DeckPage() {
   const grid = (patch: { cols?: number; rows?: number; gap?: number }) => void api.cmd('profile.update', { id: file.profile.id, patch }).catch(() => {});
   const p = file.profile;
   const widget = file.widgets.find(w => w.id === selected) ?? null;
+  const here = file.widgets.filter(w => w.folderId === folderId);
+  const hidden = here.filter(w => state!.missing?.includes(w.id)).length;
+  const free = p.cols * p.rows - here.reduce((n, w) => n + w.w * w.h, 0);
 
   return (
     <div class="deck-page">
       <Tree profiles={profiles} sel={{ profileId: file.profile.id, folderId }} onSelect={s => { setSel({ profileId: s.profileId, folderId: s.folderId || (profiles.find(x => x.profile.id === s.profileId)?.profile.rootFolderId ?? '') }); setSelected(null); }} />
       <section class="workspace" aria-label="Deck">
         <header class="workspace-bar">
-          <nav class="crumbs" aria-label="Folder">
-            {path.length > 1 && <button type="button" class="icon-btn" title="Back" onClick={() => setSel({ profileId: file.profile.id, folderId: path[path.length - 2].id })}><Icon name="caret-left" size={18} /></button>}
-            {path.map((c, i) => (
-              <button key={c.id} type="button" class={i === path.length - 1 ? 'crumb current' : 'crumb'} onClick={() => setSel({ profileId: file.profile.id, folderId: c.id })}>{c.name}</button>
-            ))}
-          </nav>
-          <div class="grid-controls" role="group" aria-label="Grid size">
-            <Stepper label="Columns" value={p.cols} min={1} max={12} onChange={v => grid({ cols: v })} />
-            <span class="times" aria-hidden="true">×</span>
-            <Stepper label="Rows" value={p.rows} min={1} max={8} onChange={v => grid({ rows: v })} />
-            <Stepper label="Gap" value={p.gap} min={0} max={24} step={2} onChange={v => grid({ gap: v })} />
+          <div class="ws-title">
+            <nav class="crumbs" aria-label="Folder">
+              {path.length > 1 && <button type="button" class="icon-btn" title="Back" onClick={() => setSel({ profileId: file.profile.id, folderId: path[path.length - 2].id })}><Icon name="caret-left" size={18} /></button>}
+              {path.map((c, i) => (
+                <button key={c.id} type="button" class={i === path.length - 1 ? 'crumb current' : 'crumb'} aria-current={i === path.length - 1 ? 'page' : undefined} onClick={() => setSel({ profileId: file.profile.id, folderId: c.id })}>{c.name}</button>
+              ))}
+            </nav>
+            <p class="ws-sub">
+              {here.length} {here.length === 1 ? 'key' : 'keys'}{free > 0 ? `, ${free} empty ${free === 1 ? 'cell' : 'cells'}` : ', every cell used'}.
+              {hidden > 0 && <span class="ws-hidden"> {hidden} hidden: {hidden === 1 ? 'its app is' : 'their apps are'} not on this PC.</span>}
+            </p>
+          </div>
+          <div class="ws-tools">
             <KeyStyle file={file} />
             <FollowApps file={file} />
           </div>
         </header>
         <Canvas file={file} folderId={folderId} profiles={profiles} selected={selected} onSelect={setSelected}
           onOpenFolder={id => { setSel({ profileId: file.profile.id, folderId: id }); setSelected(null); }} assetUrl={assetUrl} />
-        <p class="workspace-hint">Click an empty cell to add a button. Drag to move, drag the corner to resize, right-click for more.</p>
+        <footer class="stand">
+          <div class="stand-size" role="group" aria-label="Grid size">
+            <Stepper label="Columns" value={p.cols} min={1} max={12} onChange={v => grid({ cols: v })} />
+            <span class="times" aria-hidden="true">×</span>
+            <Stepper label="Rows" value={p.rows} min={1} max={8} onChange={v => grid({ rows: v })} />
+            <span class="stand-rule" aria-hidden="true" />
+            <Stepper label="Spacing" value={p.gap} min={0} max={24} step={2} onChange={v => grid({ gap: v })} />
+          </div>
+          <p class="stand-hint"><kbd>Click</kbd> an empty cell to add <kbd>Drag</kbd> to move <kbd>Corner</kbd> to resize <kbd>Right-click</kbd> for more</p>
+        </footer>
       </section>
-      <Inspector widget={widget} key={widget?.id ?? 'none'} />
+      <Inspector widget={widget} plate={{ bg: file.profile.bg, tiles: file.profile.tiles ?? 'keycap' }} key={widget?.id ?? 'none'} />
     </div>
   );
 }
@@ -67,9 +81,9 @@ function Stepper({ label, value, min, max, step = 1, onChange }: { label: string
   return (
     <label class="stepper">
       <span class="stepper-label">{label}</span>
-      <button type="button" class="stepper-btn" aria-label={`Fewer ${label.toLowerCase()}`} disabled={value <= min} onClick={() => onChange(Math.max(min, value - step))}><Icon name="minus" size={14} /></button>
+      <button type="button" class="stepper-btn" aria-label={`Decrease ${label.toLowerCase()}`} disabled={value <= min} onClick={() => onChange(Math.max(min, value - step))}><Icon name="minus" size={14} /></button>
       <span class="stepper-value" aria-live="polite">{value}</span>
-      <button type="button" class="stepper-btn" aria-label={`More ${label.toLowerCase()}`} disabled={value >= max} onClick={() => onChange(Math.min(max, value + step))}><Icon name="plus" size={14} /></button>
+      <button type="button" class="stepper-btn" aria-label={`Increase ${label.toLowerCase()}`} disabled={value >= max} onClick={() => onChange(Math.min(max, value + step))}><Icon name="plus" size={14} /></button>
     </label>
   );
 }

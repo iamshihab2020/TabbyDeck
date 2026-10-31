@@ -1,7 +1,7 @@
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { isSea } from 'node:sea';
-import { starterProfileFile } from '@tabbydeck/shared';
+import { starterProfileFiles } from '@tabbydeck/shared';
 import { parseArgs, type Config } from './config.ts';
 import { createLogger } from './log/logger.ts';
 import { diskAssetSource, seaAssetSource, type AssetSource } from './assets/source.ts';
@@ -45,7 +45,7 @@ export async function boot(cfg: Config): Promise<Booted> {
   const log = createLogger({ dir: path.join(cfg.dataDir, 'logs'), level: 'info' });
   let host: Host | undefined, editor: EditorServer;
   try {
-    host = await createHost({ dataDir: cfg.dataDir, log, fakeNative: cfg.fakeNative, lanPort: cfg.port, clientAssets: appAssets('deck'), firstRun: starterProfileFile });
+    host = await createHost({ dataDir: cfg.dataDir, log, fakeNative: cfg.fakeNative, lanPort: cfg.port, clientAssets: appAssets('deck'), firstRun: starterProfileFiles });
     editor = await startEditorServer(host, { port: cfg.editorPort ?? host.store.settings().editorPort, log, assets: appAssets('editor') });
   } catch (e) {
     log.error('main', 'TabbyDeck could not start', { error: String(e) });

@@ -20,7 +20,7 @@ export interface CommandContext { host: Host; log: Logger; onPausedChange(): voi
 
 const Name = z.string().trim().min(1).max(40);
 const Rect = { x: z.number().int(), y: z.number().int(), w: z.number().int().min(1), h: z.number().int().min(1) };
-const ProfilePatch = z.object({ name: Name.optional(), cols: z.number().int().optional(), rows: z.number().int().optional(), gap: z.number().optional(), bg: z.string().optional(), bgImage: z.string().optional(), tiles: z.enum(TILE_STYLES).optional(),
+const ProfilePatch = z.object({ name: Name.optional(), cols: z.number().int().optional(), rows: z.number().int().optional(), gap: z.number().optional(), bg: z.string().max(200).optional(), bgImage: z.string().max(64).nullable().optional(), tiles: z.enum(TILE_STYLES).optional(),
   apps: z.array(z.string().trim().toLowerCase().regex(/^[^\\/:*?"<>|]{1,60}\.exe$/, 'a program file such as code.exe')).max(50).optional() }).strict();
 
 // One zod schema per command: arguments from the editor are untrusted until parsed.
@@ -43,7 +43,7 @@ const ARGS = {
   'device.block': z.object({ id: IdSchema }),
   'device.unblock': z.object({ id: IdSchema }),
   'device.forget': z.object({ id: IdSchema }),
-  'device.update': z.object({ id: IdSchema, name: Name.optional(), profileId: IdSchema.nullable().optional(), followApps: z.boolean().optional() }),
+  'device.update': z.object({ id: IdSchema, name: Name.optional(), profileId: IdSchema.nullable().optional(), followApps: z.boolean().optional(), edit: z.boolean().optional(), news: z.boolean().optional() }),
   'asset.upload': z.object({ name: z.string().max(200), dataUrl: z.string().max(2_000_000) }),
   'asset.delete': z.object({ id: z.string().max(64) }),
   'action.test': z.object({ step: StepSchema }),
@@ -74,7 +74,7 @@ function device(ctx: CommandContext, id: string) {
 
 const handlers: { [K in keyof typeof ARGS]: (a: Args<K>, ctx: CommandContext) => unknown | Promise<unknown> } = {
   'profile.create': (a, { host }) => ({ id: host.store.createProfile(a.name, a.cols, a.rows).id }),
-  'profile.update': (a, { host }) => { host.store.updateProfile(a.id, a.patch); },
+  'profile.update': (a, { host }) => { host.store.updateProfile(a.id, { ...a.patch, ...(a.patch.bgImage === null ? { bgImage: undefined } : {}) } as never); }, // null takes the photo off
   'profile.delete': (a, { host }) => { host.store.deleteProfile(a.id); },
   'profile.reorder': (a, { host }) => { host.store.reorderProfiles(a.ids); },
   'folder.create': (a, { host }) => ({ id: host.store.createFolder(a.profileId, a.parentId, a.name).id }),
@@ -98,7 +98,7 @@ const handlers: { [K in keyof typeof ARGS]: (a: Args<K>, ctx: CommandContext) =>
     const d = device(ctx, a.id);
     if (a.profileId && !ctx.host.store.profile(a.profileId)) throw new StoreError('not_found', 'profile');
     const { profileId: _old, ...rest } = d;
-    ctx.host.store.upsertDevice({ ...rest, ...(a.name ? { name: a.name } : {}), ...(a.profileId === null ? {} : { profileId: a.profileId ?? d.profileId }), ...(a.followApps === undefined ? {} : { followApps: a.followApps }) });
+    ctx.host.store.upsertDevice({ ...rest, ...(a.name ? { name: a.name } : {}), ...(a.profileId === null ? {} : { profileId: a.profileId ?? d.profileId }), ...(a.followApps === undefined ? {} : { followApps: a.followApps }), ...(a.edit === undefined ? {} : { edit: a.edit }), ...(a.news === undefined ? {} : { news: a.news }) });
     if (a.profileId) ctx.host.clients.switchProfile(a.id, a.profileId);
   },
   'asset.upload': (a, { host }) => host.assets.save(a.name, a.dataUrl),

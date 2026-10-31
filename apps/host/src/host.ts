@@ -15,11 +15,13 @@ import { StateWatcher } from './engine/states.ts';
 import { startAppFollower } from './engine/follow.ts';
 import { InfoKeys } from './engine/info.ts';
 import { Installed } from './engine/installed.ts';
+import { fitStarterApps } from './engine/starterApps.ts';
 import { Stats } from './engine/stats.ts';
 import { appUsingMic } from './integrations/meeting.ts';
 import { parseHotkey } from './native/win/keys.ts';
 import { registerBuiltins } from './integrations/index.ts';
 import { AssetStore, assetRoute } from './assets/store.ts';
+import { PhoneEditError, applyPhoneBackground, applyPhoneEdit } from './engine/phoneEdit.ts';
 
 export interface HostOptions {
   dataDir: string;
@@ -33,7 +35,7 @@ export interface HostOptions {
   clientAssets?: AssetSource;
   extraRoutes?: Route[];
   /** Deck for an empty data folder; defaults to the one-button profile. */
-  firstRun?: () => ProfileFile;
+  firstRun?: () => ProfileFile[];
 }
 
 export interface Host {
@@ -56,7 +58,7 @@ export async function createHost(o: HostOptions): Promise<Host> {
   const registry = new ActionRegistry();
   // The engine reaches devices through the client registry, which is created just below.
   let clients!: Clients;
-  const info = new InfoKeys({ store, native, patch: (id, live) => clients.patch(id, live), notify: text => clients.notify('all', text, true) });
+  const info = new InfoKeys({ store, native, patch: (id, live) => clients.patch(id, live), notify: text => clients.notify('all', text, true, true), onFocus: kind => { stats.focus(kind); void readMood(); } });
   registerBuiltins(registry, { native, held, store, info });
   const vars = new Vars(store);
   const assets = new AssetStore(store);
@@ -77,7 +79,7 @@ export async function createHost(o: HostOptions): Promise<Host> {
   const stats = new Stats({ dir: o.dataDir, native });
   clients.statsOf = () => stats.summary(7);
   stats.on('badge', id => clients.broadcast({ t: 'badge', id }));
-  const states = new StateWatcher({ store, native, clients });
+  const states = new StateWatcher({ store, native, clients, appName: id => installed.nameOf(id) });
   clients.liveOf = w => ({ ...states.liveOf(w), ...info.liveOf(w) });
   clients.on('deviceConnected', () => void states.refresh());
   const installed = new Installed({ store, native });
@@ -145,6 +147,14 @@ export async function createHost(o: HostOptions): Promise<Host> {
     if (m.key) { const k = parseHotkey(m.key); if (k.ok) for (const vk of k.keys) { i.keyDown(vk); i.keyUp(vk); } }
   };
 
+  // Edit mode on a deck. Clients has checked the device may edit and the key is on its profile.
+  const editFailed = (s: { deviceId?: string }) => (e: unknown) => {
+    if (!(e instanceof PhoneEditError)) o.log.warn('clients', 'phone edit failed', { error: String(e) });
+    clients.notify(s.deviceId!, e instanceof PhoneEditError ? e.message : 'Could not change that key', false);
+  };
+  clients.onEdit = (s, f, w, m) => void applyPhoneEdit(store, assets, f, w, m, f.widgets.some(x => x.folderId === w.folderId && installed.missing(x))).catch(editFailed(s));
+  clients.onBackground = (s, m) => void applyPhoneBackground(store, assets, s.profileId, m).catch(editFailed(s));
+
   // The cover of what is playing, for Now playing keys. It lives in memory and changes with the track.
   const artRoute: Route = {
     method: 'GET', path: /^\/assets\/u\/(np-[0-9a-f]{12}\.(?:png|jpg|gif|webp|bmp))$/,
@@ -171,16 +181,18 @@ export async function createHost(o: HostOptions): Promise<Host> {
   const stopPoller = startSysInfoPoller(native, vars, () => clients.count());
   const stopStates = states.start();
   const stopInfo = info.start();
+  if (store.fresh) void fitStarterApps({ store, assets, native });
   const stopInstalled = installed.start();
   const stopStats = stats.start();
   // The decks' cat dresses for what the PC is doing: headphones while media plays, glasses during a focus session.
   // The cat's other outfits: a headset while a call uses the mic, a hard hat while a timer runs.
-  let mood = { playing: false, focus: false, meeting: false, timer: false };
+  // Today's focus garden comes along, so the plants grow on the cat's floor.
+  let mood = { playing: false, focus: false, meeting: false, timer: false, plants: 0, wilted: 0 };
   const readMood = async () => {
     if (!clients.count()) return;
     const next = {
       playing: await native.system.mediaPlaying().catch(() => false), focus: info.focusing(),
-      meeting: !!appUsingMic(await native.system.micUsers().catch(() => [])), timer: info.timing(),
+      meeting: !!appUsingMic(await native.system.micUsers().catch(() => [])), timer: info.timing(), ...stats.garden(),
     };
     if (JSON.stringify(next) !== JSON.stringify(mood)) { mood = next; clients.broadcast({ t: 'mood', ...mood }); }
   };

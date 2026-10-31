@@ -3,8 +3,8 @@ type FsEl = HTMLElement & { webkitRequestFullscreen?: () => void };
 
 export const isFullscreen = (): boolean => { const d = document as FsDoc; return !!(d.fullscreenElement || d.webkitFullscreenElement); };
 
-/** Opened from its home-screen icon: the browser already shows TabbyDeck full screen, with no address bar. */
-export const fromHomeScreen = (): boolean => (navigator as Navigator & { standalone?: boolean }).standalone === true ||
+/** Opened from its home-screen icon or in the Android app: TabbyDeck is already full screen, with no address bar. */
+export const fromHomeScreen = (): boolean => !!window.TabbyAndroid || (navigator as Navigator & { standalone?: boolean }).standalone === true ||
   (!!window.matchMedia && matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches);
 
 /** False on iPhone, where Safari has no full-screen mode for pages; the home-screen icon is the way there. */

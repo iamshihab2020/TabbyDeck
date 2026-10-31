@@ -25,6 +25,10 @@ export function expandEnv(s: string): string {
 const SAFE_URL = /^(https?:\/\/|mailto:|[a-z][a-z0-9+.-]{1,30}:)/i;
 const BLOCKED_SCHEME = /^(file|javascript|data|vbscript|about|shell):/i;
 
+// Snipping Tool dropped ms-screenclip:?clippingMode=… in 2025 (explorer then opens Documents), so saved keys get the current link.
+const snipLink = (url: string) => /^ms-screenclip:(?!\/\/)/i.test(url)
+  ? `ms-screenclip://capture/image?${/clippingMode=(window|freeform)/i.exec(url)?.[1].toLowerCase() ?? 'rectangle'}` : url;
+
 export function registerSystem(registry: ActionRegistry, deps: { native: Native }): void {
   const { system } = deps.native;
   registry.register({
@@ -33,12 +37,12 @@ export function registerSystem(registry: ActionRegistry, deps: { native: Native 
     run: async p => system.launch(expandEnv(String(p.path).trim()), splitArgs(String(p.args ?? ''))),
   });
   registry.register({
-    id: 'system.openUrl', name: 'Open website or link', group: 'System',
+    id: 'system.openUrl', name: 'Open website or link', description: 'Opens a website in your browser, or a link such as ms-settings: or spotify:', group: 'System',
     schema: { url: { type: 'string', title: 'Address', required: true } },
     run: async p => {
       const url = String(p.url).trim();
       if (BLOCKED_SCHEME.test(url) || !SAFE_URL.test(url)) throw new Error(`Links like "${url.slice(0, 40)}" are not allowed`);
-      await system.openUrl(url);
+      await system.openUrl(snipLink(url));
     },
   });
   registry.register({
@@ -61,22 +65,22 @@ export function registerSystem(registry: ActionRegistry, deps: { native: Native 
     },
   });
   registry.register({
-    id: 'system.kill', name: 'Close app (force)', group: 'System', danger: true,
+    id: 'system.kill', name: 'Close app (force)', description: 'Closes an app at once, without asking it to save', group: 'System', danger: true,
     schema: { process: { type: 'string', title: 'Process name, e.g. chrome.exe', required: true } },
     run: async p => { if ((await system.kill(String(p.process).trim())) === 0) throw new Error(`${p.process} is not running`); },
   });
   registry.register({
-    id: 'system.focus', name: 'Switch to window', group: 'System',
+    id: 'system.focus', name: 'Switch to window', description: 'Brings a window to the front by its title', group: 'System',
     schema: { title: { type: 'window', title: 'App or window title', required: true } },
     run: async p => { if (!(await system.focusWindow(String(p.title)))) throw new Error(`No window matches "${p.title}"`); },
   });
-  registry.register({ id: 'system.lock', name: 'Lock computer', group: 'System', schema: {}, run: () => system.lock() });
-  registry.register({ id: 'system.sleep', name: 'Sleep', group: 'System', danger: true, schema: {}, run: () => system.sleep() });
+  registry.register({ id: 'system.lock', name: 'Lock computer', description: 'Locks the PC, like Windows+L', group: 'System', schema: {}, run: () => system.lock() });
+  registry.register({ id: 'system.sleep', name: 'Sleep', description: 'Puts the PC to sleep', group: 'System', danger: true, schema: {}, run: () => system.sleep() });
   registry.register({
-    id: 'system.shutdown', name: 'Shut down or restart', group: 'System', danger: true,
+    id: 'system.shutdown', name: 'Shut down or restart', description: 'Turns the PC off, or restarts it', group: 'System', danger: true,
     schema: { restart: { type: 'boolean', title: 'Restart instead', default: false } },
     run: p => system.shutdown(Boolean(p.restart)),
   });
-  registry.register({ id: 'system.clipboard', name: 'Copy text to clipboard', group: 'System', schema: { text: { type: 'text', title: 'Text', required: true } }, run: p => system.clipboardSet(String(p.text)) });
-  registry.register({ id: 'system.screenshot', name: 'Screenshot to clipboard', group: 'System', schema: {}, run: () => system.screenshotToClipboard() });
+  registry.register({ id: 'system.clipboard', name: 'Copy text to clipboard', description: 'Puts text on the clipboard, ready to paste', group: 'System', schema: { text: { type: 'text', title: 'Text', required: true } }, run: p => system.clipboardSet(String(p.text)) });
+  registry.register({ id: 'system.screenshot', name: 'Screenshot to clipboard', description: 'Takes a picture of the whole screen and puts it on the clipboard', group: 'System', schema: {}, run: () => system.screenshotToClipboard() });
 }

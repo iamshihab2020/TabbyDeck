@@ -30,7 +30,7 @@ describe('boot', () => {
     expect((await fetch(`http://127.0.0.1:${b.host.lanPort}/assets/u/none.png`)).status).toBe(404);
     expect((await fetch(`http://127.0.0.1:${b.editor.port}/`)).status).toBe(401); // up and guarded; the page itself needs a built editor
     expect(existsSync(path.join(dataDir, 'tabby.lock'))).toBe(true);
-    expect(b.host.store.profiles()[0].widgets).toHaveLength(35); // a fresh install starts with the starter deck
+    expect(b.host.store.profiles().map(p => [p.profile.name, p.widgets.length])).toEqual([['Main', 48], ['Work', 48]]); // a fresh install starts with the starter decks
   });
 
   it('a second start with the same data dir asks the first to open its window and stops', async () => {

@@ -30,13 +30,15 @@ export function needOf(action: string, params: Record<string, unknown>): Need | 
  * several apps stays while any one of them is here. Until the first look at the PC's apps, every key shows.
  */
 export class Installed extends EventEmitter<{ change: [profileIds: string[]] }> {
-  private apps: Set<string> | null = null;
+  private apps: Map<string, string> | null = null;
   private schemes = new Map<string, boolean>();
   private gone = new Set<string>();
 
   constructor(private d: { store: Store; native: Native }) { super(); }
 
   missing = (w: Widget): boolean => this.gone.has(w.id);
+  /** The Start menu name of an app (GitHub Desktop), once the PC's apps have been read. */
+  nameOf = (id: string): string | undefined => this.apps?.get(id.toLowerCase());
   missingIds(): string[] { return [...this.gone]; }
 
   private has(n: Need): boolean {
@@ -47,7 +49,7 @@ export class Installed extends EventEmitter<{ change: [profileIds: string[]] }> 
 
   /** Look at the PC's apps again and redraw the decks whose keys came or went. */
   async refresh(): Promise<void> {
-    try { this.apps = new Set((await this.d.native.system.listApps()).map(a => a.id.toLowerCase())); } catch { return; } // cannot tell: keep what we had
+    try { this.apps = new Map((await this.d.native.system.listApps()).map(a => [a.id.toLowerCase(), a.name])); } catch { return; } // cannot tell: keep what we had
     const needs = new Map<string, Need[]>();
     for (const f of this.d.store.profiles()) for (const w of f.widgets) {
       if (w.config.kind !== 'button') continue;

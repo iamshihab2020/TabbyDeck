@@ -11,6 +11,14 @@ import { keepAwake } from './wake.ts';
 import { toggleFullscreen } from './fullscreen.ts';
 import { createIdleDimmer, loadDimAfter, saveDimAfter } from './idle.ts';
 import type { Mood } from './screens/Cat.tsx';
+import { loadAlarm, loadSound, playAlarm, saveAlarm, saveSound, unlockAudio, type Alarm, type KeySound } from './sound.ts';
+import { markNewsRead, newsUnread } from './news.ts';
+import { latestNews, splitLabel } from '@tabbydeck/shared/news';
+import changelog from '../../../CHANGELOG.md?raw';
+
+// What's new on the phone in this version: the "On the phone" part of the newest release in the changelog.
+const NEWS = latestNews(changelog);
+const PHONE_NEWS = NEWS?.sections.find(s => s.title === 'On the phone')?.items ?? [];
 
 const VERSION = '0.2.0';
 
@@ -28,6 +36,10 @@ export function App() {
   const [stats, setStats] = useState<StatsSummary | null>(null);
   const [badge, setBadge] = useState<{ id: BadgeId; n: number } | null>(null);
   const [mood, setMood] = useState<Mood>({ playing: false, focus: false });
+  const [sound, setSound] = useState<KeySound>(() => loadSound(kv));
+  const [alarm, setAlarm] = useState<Alarm>(() => loadAlarm(kv));
+  const [unread, setUnread] = useState(() => !!NEWS && PHONE_NEWS.length > 0 && newsUnread(kv, NEWS.version, !!loadDevice(kv).token));
+  const [newsOpen, setNewsOpen] = useState(unread);
 
   useEffect(() => {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -36,16 +48,19 @@ export function App() {
       onDeck: v => setView(v),
       onPatch: (m: Extract<HostMsg, { t: 'patch' }>) => {
         if (m.flash) setFlash({ id: m.widgetId, kind: m.flash, n: Date.now() });
-        const { look, value, active, disabled, screens, level, muted, bluetooth, apps, outputs, big } = m;
-        const live = { value, active, disabled, screens, level, muted, bluetooth, apps, outputs, big };
+        const { look, value, active, running, disabled, screens, level, muted, bluetooth, apps, outputs, big } = m;
+        const live = { value, active, running, disabled, screens, level, muted, bluetooth, apps, outputs, big };
         for (const k of Object.keys(live) as (keyof typeof live)[]) if (live[k] === undefined) delete live[k];
         if (look || Object.keys(live).length) setView(v => v && { ...v, widgets: v.widgets.map(w => w.id === m.widgetId ? { ...w, look: { ...w.look, ...look }, ...live } : w) });
       },
-      onNotify: m => { setToast(m.text); if (m.vibrate && navigator.vibrate) navigator.vibrate(30); },
+      onNotify: m => {
+        setToast(m.text);
+        if (m.alarm) { playAlarm(loadAlarm(kv)); if (navigator.vibrate) navigator.vibrate([300, 150, 300, 150, 300]); } else if (m.vibrate && navigator.vibrate) navigator.vibrate(30);
+      },
       onPairRequired: c2 => setCode(c2),
       onStats: m => setStats(m.summary),
       onBadge: m => { setBadge(b => ({ id: m.id, n: (b?.n ?? 0) + 1 })); if (navigator.vibrate) navigator.vibrate([20, 60, 20]); },
-      onMood: m => setMood({ playing: m.playing, focus: m.focus, meeting: m.meeting, timer: m.timer }),
+      onMood: m => setMood({ playing: m.playing, focus: m.focus, meeting: m.meeting, timer: m.timer, plants: m.plants, wilted: m.wilted }),
     }, { WebSocket, caps: { vibrate: 'vibrate' in navigator, wakeLock: 'wakeLock' in navigator }, version: VERSION });
     setConn(c);
     const stopWake = keepAwake();
@@ -68,13 +83,19 @@ export function App() {
     return () => { d.stop(); document.removeEventListener('pointerdown', touch, true); setDimmed(false); };
   }, [dimAfter, showDeck]);
   const chooseDim = (ms: number) => { saveDimAfter(kv, ms); setDimAfter(ms); };
+  const chooseSound = (s: KeySound) => { saveSound(kv, s); setSound(s); };
+  const chooseAlarm = (a: Alarm) => { saveAlarm(kv, a); setAlarm(a); };
+  useEffect(() => { window.addEventListener('pointerdown', unlockAudio); return () => window.removeEventListener('pointerdown', unlockAudio); }, []);
+  const newsOn = !!view && view.news !== false && PHONE_NEWS.length > 0;
+  const readNews = () => { if (NEWS) markNewsRead(kv, NEWS.version); setUnread(false); setNewsOpen(false); };
 
   return (
     <>
       <SpriteDefs />
       {showDeck
         ? <DeckScreen view={view!} conn={conn!} flash={flash} name={name} onRename={rename} dimAfter={dimAfter} onDimAfter={chooseDim}
-            mood={mood}
+            mood={mood} sound={sound} onSound={chooseSound} alarm={alarm} onAlarm={chooseAlarm} toast={setToast}
+            newsUnread={newsOn && unread} onNews={newsOn ? () => setNewsOpen(true) : null}
             stats={stats} onAskStats={() => { setStats(null); conn?.send({ t: 'stats' }); }} />
         : <Pair state={state} code={code} name={name} onRename={rename} onFullscreen={toggleFullscreen} />}
       <Overlay state={state} hasDeck={!!view} onRetry={() => conn?.retry()} />
@@ -83,6 +104,16 @@ export function App() {
         <div key={badge.n} class="badge-pop" role="status">
           <BadgeArt id={badge.id} size={52} />
           <span class="badge-text"><span class="badge-new">New badge</span><b>{BADGES[badge.id].name}</b><span>{BADGES[badge.id].text}</span></span>
+        </div>
+      )}
+      {newsOpen && newsOn && showDeck && (
+        <div class="sheet-backdrop" onClick={() => setNewsOpen(false)}>
+          <section class="sheet" role="dialog" aria-label={`What's new in ${NEWS!.version}`} onClick={e => e.stopPropagation()}>
+            <div class="sheet-handle" />
+            <h2 class="bright-title">What's new in {NEWS!.version}</h2>
+            <ul class="news-list">{PHONE_NEWS.map(item => { const { label, text } = splitLabel(item); return <li key={item}>{label && <b>{label}. </b>}{text}</li>; })}</ul>
+            <div class="sheet-row"><button type="button" class="btn primary" onClick={readNews}>Got it</button></div>
+          </section>
         </div>
       )}
       {dimmed && showDeck && <div class="dim-veil" aria-hidden="true" onPointerDown={e => e.preventDefault()} />}

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TabbyDeck releases</title>
-<meta name="description" content="Every TabbyDeck release and what it added: ready-made decks, the volume mixer, meeting keys, the trackpad, iPhone and iPad support and more.">
+<meta name="description" content="Every TabbyDeck release and what it added: the Android app, ready-made decks, the volume mixer, meeting keys, the trackpad, iPhone and iPad support and more.">
 <meta property="og:title" content="TabbyDeck releases">
 <meta property="og:image" content="https://iamshihab2020.github.io/TabbyDeck/img/social-preview.png">
 <meta name="theme-color" content="#191613">
@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400..800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=6">
+<link rel="stylesheet" href="styles.css?v=7">
 <script>document.documentElement.classList.add("js")</script>
 </head>
 <body>
@@ -26,6 +26,7 @@
   </a>
   <nav class="nav" aria-label="Pages">
     <a href="./#features">What it does</a>
+    <a href="./#android">Android app</a>
     <a href="./#setup">Set up</a>
     <a href="releases.html" aria-current="page">Releases</a>
   </nav>
@@ -35,16 +36,61 @@
 <main id="main" class="rel-page">
   <section class="rel-head">
     <h1 class="rel-title">Releases</h1>
-    <p class="sub">What each version of TabbyDeck added. To update, download the latest zip and unzip it over your old folder; your decks and paired devices stay as they are.</p>
+    <p class="sub">What each version of TabbyDeck added. To update, download the latest zip and unzip it over your old folder; your decks and paired devices stay as they are. The Android app shows the deck from your PC, so it follows along by itself.</p>
   </section>
 
   <ol class="timeline">
+    <li class="release" id="v0.4.0">
+      <div class="rel-cap" aria-hidden="true">0.4</div>
+      <div class="rel-body">
+        <div class="rel-meta">
+          <h2>TabbyDeck 0.4.0</h2>
+          <span class="tag latest">Latest</span>
+          <time datetime="2026-10-31">31 October 2026</time>
+        </div>
+        <p class="rel-sum">An Android app, and the phone can now change the keys: photos and GIFs, backgrounds, key sounds, a timer alarm, a focus garden and a temperature key.</p>
+        <ul class="hl">
+          <li><svg aria-hidden="true"><use href="#i-android-logo"/></svg>Android app</li>
+          <li><svg aria-hidden="true"><use href="#i-pencil-simple"/></svg>Edit keys on the phone</li>
+          <li><svg aria-hidden="true"><use href="#i-palette"/></svg>Photos and backgrounds</li>
+          <li><svg aria-hidden="true"><use href="#i-bell"/></svg>Key sounds and alarm</li>
+          <li><svg aria-hidden="true"><use href="#i-flower-lotus"/></svg>Focus garden</li>
+          <li><svg aria-hidden="true"><use href="#i-cloud"/></svg>Temperature</li>
+        </ul>
+        <div class="groups">
+          <details open><summary>On the phone</summary><ul>
+            <li>Android app, for Android 5.0 and newer: it finds your PC on the Wi-Fi by itself and shows the deck full screen, with the screen kept on. Back shows the list of PCs, and so does Change PC in the deck's settings. If the PC gets a new address, the app finds it again; pair it once more there.</li>
+            <li>Edit keys: in the deck's settings, the keys wiggle. Tap one to change its label, icon and colour, or to delete it; drag it to move it. The editor and every other phone update at once, and the PC can turn editing off for a device.</li>
+            <li>Photos and GIFs on keys, from the gallery or the camera, cropped to the key and made smaller so the deck stays fast. Background puts a colour, a gradient or a photo behind the keys.</li>
+            <li>Key sounds (Silent, Soft click, Keyboard or Pop) and a timer alarm (Chime, Bell or Off), chosen on each phone. iPhones get a feel for a press without vibration.</li>
+            <li>Focus garden: each Pomodoro focus you finish grows a plant on the cat's floor; one you reset wilts. Snow settles on the keys in December, and pumpkins sit on some keys at Halloween.</li>
+            <li>Timer keys show their minutes in edit mode, to change there. After an update, the deck shows what changed, once.</li>
+          </ul></details>
+          <details open><summary>Keys</summary><ul>
+            <li>Temperature: the temperature outside in the city you type, from the free Open-Meteo service, or how hot the PC is inside. Choose °C or °F.</li>
+            <li>Snip area and Snip window: open the snip bar with Rectangle or Window already picked.</li>
+          </ul></details>
+          <details><summary>New installs</summary><ul>
+            <li>A fresh install starts with two 8 by 6 decks, Main and Work. Their app keys find the apps on your PC and take their icons. Existing setups are not touched.</li>
+          </ul></details>
+          <details><summary>Editor</summary><ul>
+            <li>Customize: each profile's background, and the seasonal touches on or off. Devices: Can edit keys and What's new for each device.</li>
+            <li>Deck page: a small map of each profile's keys, numbers along the deck for the selected key's rows and columns, and the grid controls under the deck.</li>
+            <li>Key settings: ready colour pairs, and actions as a timeline with a Try button on each step. Integrations: search every action and read what each one does.</li>
+          </ul></details>
+          <details><summary>Fixes</summary><ul>
+            <li>The bird on the Early bird badge drew wrongly.</li>
+          </ul></details>
+        </div>
+        <a class="btn primary small" href="https://github.com/iamshihab2020/TabbyDeck/releases/tag/v0.4.0"><svg aria-hidden="true"><use href="#i-download-simple"/></svg>Download 0.4.0</a>
+      </div>
+    </li>
+
     <li class="release" id="v0.3.0">
       <div class="rel-cap" aria-hidden="true">0.3</div>
       <div class="rel-body">
         <div class="rel-meta">
           <h2>TabbyDeck 0.3.0</h2>
-          <span class="tag latest">Latest</span>
           <time datetime="2026-10-25">25 October 2026</time>
         </div>
         <p class="rel-sum">Claude Code keys in the Developer deck, a Screen off key for long jobs, browser profiles, a cat under the keys, badges and a Stats page.</p>

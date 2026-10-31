@@ -3,6 +3,7 @@ import type { Settings } from '@tabbydeck/shared';
 import { Icon } from '@tabbydeck/ui';
 import { useApi, useSnapshot, errorText } from '../state.ts';
 import { Modal } from '../components/Modal.tsx';
+import { showNews } from '../components/WhatsNew.tsx';
 import { toast } from '../components/Toast.tsx';
 
 export function SettingsPage() {
@@ -98,6 +99,10 @@ export function SettingsPage() {
             <span class="set-help">Connecting a device and a tour of the editor, as on the first start.</span>
           </div>
           <button type="button" class="btn" onClick={() => void save({ guideDone: false })}><Icon name="compass" size={16} />Show the guide again</button>
+        </div>
+        <div class="set-row">
+          <div><span class="set-title">What's new</span><span class="set-help">The new things in this version of TabbyDeck.</span></div>
+          <button type="button" class="btn" onClick={showNews}><Icon name="sparkle" size={16} />What's new</button>
         </div>
         <div class="set-row">
           <div><span class="set-title">TabbyDeck {state!.version}</span><span class="set-help">Your profiles, images and logs are kept in TabbyDeck's data folder.</span></div>

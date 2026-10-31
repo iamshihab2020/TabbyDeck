@@ -23,6 +23,10 @@ export interface TileProps {
   onKeyDown?: (e: TargetedKeyboardEvent<HTMLButtonElement>) => void;
   tabIndex?: number;
   dataId?: boolean;
+  /** A seasonal touch: snow on the key's top edge, or a small pumpkin in its corner. */
+  deco?: 'snow' | 'pumpkin';
+  /** Being dragged to a new place (edit mode on the deck). */
+  dragging?: boolean;
 }
 
 export function Tile(p: TileProps) {
@@ -42,12 +46,12 @@ export function Tile(p: TileProps) {
     if (fit < px) t.labelStyle.fontSize = `${Math.max(8, fit)}px`;
   }
   const name = look.label || (look.icon ?? (p.widget.kind === 'folder' ? 'Folder' : 'Button'));
-  const cls = 'tb-tile' + (p.flash ? ` tb-flash-${p.flash}` : '') + (p.selected ? ' tb-selected' : '') + (p.pressed ? ' tb-pressed' : '') + (p.widget.active ? ' tb-active' : '') + (p.widget.disabled ? ' tb-disabled' : '');
+  const cls = 'tb-tile' + (p.flash ? ` tb-flash-${p.flash}` : '') + (p.selected ? ' tb-selected' : '') + (p.pressed ? ' tb-pressed' : '') + (p.widget.active ? ' tb-active' : '') + (p.widget.running ? ' tb-running' : '') + (p.widget.disabled ? ' tb-disabled' : '') + (p.dragging ? ' tb-dragging' : '');
   return (
     <button
       type="button"
       class={cls}
-      aria-label={[name, p.widget.big, p.widget.value].filter(Boolean).join(', ')}
+      aria-label={[name, p.widget.big, p.widget.value, p.widget.running && 'open'].filter(Boolean).join(', ')}
       aria-disabled={p.widget.disabled || undefined}
       data-widget={p.widget.id}
       tabIndex={p.tabIndex}
@@ -60,6 +64,9 @@ export function Tile(p: TileProps) {
     >
       {p.ripple && <span key={p.ripple.n} class="tb-ripple" style={{ left: `${p.ripple.x}px`, top: `${p.ripple.y}px` }} />}
       {p.widget.active && <span class="tb-led" />}
+      {p.widget.running && <span class="tb-open" />}
+      {p.deco === 'snow' && <span class="tb-snow" aria-hidden="true" />}
+      {p.deco === 'pumpkin' && <Pumpkin size={Math.max(14, Math.round(cellPx * 0.2))} />}
       {p.widget.value && <span class="tb-value" style={{ fontSize: `${Math.max(10, Math.round(cellPx * 0.13))}px` }}>{p.widget.value}</span>}
       <span class="tb-tile-inner" style={t.innerStyle}>
       {p.widget.big
@@ -75,3 +82,11 @@ export function Tile(p: TileProps) {
     </button>
   );
 }
+
+const Pumpkin = ({ size }: { size: number }) => (
+  <svg class="tb-pumpkin" width={size} height={size} viewBox="0 0 20 20" aria-hidden="true">
+    <path d="M10 4.5c.3-1.6 1.2-2.6 2.6-3" stroke="#4d7c0f" stroke-width="1.8" fill="none" stroke-linecap="round" />
+    <ellipse cx="6.5" cy="12" rx="5" ry="6" fill="#ea7a1c" /><ellipse cx="13.5" cy="12" rx="5" ry="6" fill="#ea7a1c" /><ellipse cx="10" cy="12" rx="4.2" ry="6.6" fill="#f59a3a" />
+    <path d="M7 11l1.4-1.6L9.6 11zM10.4 11l1.2-1.6L13 11zM7.2 14q2.8 2 5.6 0" fill="#3b1d0a" stroke="#3b1d0a" stroke-width="0.6" />
+  </svg>
+);

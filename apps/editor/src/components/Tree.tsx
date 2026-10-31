@@ -8,6 +8,18 @@ import { TEMPLATES } from '@tabbydeck/shared/templates';
 
 export interface Selection { profileId: string; folderId: string }
 
+/** A thumbnail of the profile's main page: each key as a block of its own colour, where it sits on the grid. */
+function MiniMap({ f }: { f: ProfileFile }) {
+  const { cols, rows, rootFolderId, bg } = f.profile;
+  return (
+    <span class="minimap" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)`, background: bg }}>
+      {f.widgets.filter(w => w.folderId === rootFolderId && w.x < cols && w.y < rows).map(w => (
+        <i key={w.id} style={{ gridColumn: `${w.x + 1} / span ${Math.min(w.w, cols - w.x)}`, gridRow: `${w.y + 1} / span ${Math.min(w.h, rows - w.y)}`, background: w.look.bg }} />
+      ))}
+    </span>
+  );
+}
+
 /** Profiles and their nested folders. Select to edit; rename by double-click; add and remove from the row's buttons. */
 export function Tree({ profiles, sel, onSelect }: { profiles: ProfileFile[]; sel: Selection; onSelect(s: Selection): void }) {
   const api = useApi();
@@ -97,10 +109,12 @@ export function Tree({ profiles, sel, onSelect }: { profiles: ProfileFile[]; sel
                 onDragEnd={() => { setDragged(null); setOver(null); }}
                 onClick={pick({ profileId: f.profile.id, folderId: root })}>
                 <button type="button" class="tree-hit" onClick={e => { e.stopPropagation(); onSelect({ profileId: f.profile.id, folderId: root }); }} aria-label={`Open profile ${f.profile.name}`}>
-                  <Icon name="squares-four" size={16} />
+                  <MiniMap f={f} />
                 </button>
-                {name(f.profile.id, f.profile.name, 'profile')}
-                <span class="tree-meta">{f.widgets.length}</span>
+                <span class="tree-card">
+                  {name(f.profile.id, f.profile.name, 'profile')}
+                  <span class="tree-meta">{f.profile.cols} × {f.profile.rows}, {f.widgets.length} {f.widgets.length === 1 ? 'key' : 'keys'}</span>
+                </span>
                 <span class="tree-actions">
                   <button type="button" class="icon-btn tiny" title="Move up" aria-label={`Move ${f.profile.name} up`} disabled={i === 0} onClick={() => move(i, -1)}><Icon name="caret-up" size={15} /></button>
                   <button type="button" class="icon-btn tiny" title="Move down" aria-label={`Move ${f.profile.name} down`} disabled={i === profiles.length - 1} onClick={() => move(i, 1)}><Icon name="caret-down" size={15} /></button>

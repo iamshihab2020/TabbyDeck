@@ -70,6 +70,18 @@ export function DevicesPage() {
                 Follow apps
               </label>
             )}
+            {!d.blocked && (
+              <label class="check dev-follow" title="Change keys, their pictures and the background from this device's deck">
+                <input type="checkbox" checked={d.edit !== false} onChange={e => void api.cmd('device.update', { id: d.id, edit: (e.target as HTMLInputElement).checked }).catch(() => {})} />
+                Can edit keys
+              </label>
+            )}
+            {!d.blocked && (
+              <label class="check dev-follow" title="After an update, the deck shows what is new until it is read">
+                <input type="checkbox" checked={d.news !== false} onChange={e => void api.cmd('device.update', { id: d.id, news: (e.target as HTMLInputElement).checked }).catch(() => {})} />
+                What's new
+              </label>
+            )}
             {d.blocked
               ? <button type="button" class="btn" onClick={() => void api.cmd('device.unblock', { id: d.id }).catch(() => {})}>Unblock</button>
               : <button type="button" class="btn" onClick={() => void api.cmd('device.block', { id: d.id }).catch(() => {})}>Block</button>}

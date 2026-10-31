@@ -12,6 +12,9 @@ import { Cat, catSize, type Mood } from './Cat.tsx';
 import { WeekCard } from './Week.tsx';
 import type { StatsSummary } from '@tabbydeck/shared';
 import { SWIPE_START, profileAfterSwipe, swipeDir } from '../swipe.ts';
+import { ALARMS, ALARM_NAMES, SOUNDS, SOUND_NAMES, playAlarm, playSound, type Alarm, type KeySound } from '../sound.ts';
+import { hasPumpkin, seasonFor } from '../season.ts';
+import { BackgroundPicker, KeyEditor } from './Edit.tsx';
 
 export interface DeckProps {
   view: DeckView;
@@ -26,6 +29,15 @@ export interface DeckProps {
   /** The "Your week" card's numbers, once the PC has sent them; onAskStats asks again. */
   stats: StatsSummary | null;
   onAskStats(): void;
+  /** The sound a key press makes on this phone. */
+  sound: KeySound;
+  onSound(s: KeySound): void;
+  alarm: Alarm;
+  onAlarm(a: Alarm): void;
+  /** "What's new" has not been read yet on this device; onNews opens it. */
+  newsUnread: boolean;
+  onNews: (() => void) | null;
+  toast(text: string): void;
 }
 
 const assetUrl = (id: string) => `assets/u/${encodeURIComponent(id)}`;
@@ -65,7 +77,8 @@ export function layoutFor(view: DeckView, area: { w: number; h: number } | null)
   return { view: { ...view, cols, gap, rows: flowed.rows, widgets: flowed.widgets }, cell: { w: side, h: side }, scroll: true };
 }
 
-export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimAfter, mood, stats, onAskStats }: DeckProps) {
+export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimAfter, mood, stats, onAskStats, sound, onSound, alarm, onAlarm, newsUnread, onNews, toast }: DeckProps) {
+  const soundRef = useRef(sound); soundRef.current = sound;
   const cat = view.cat?.on !== false, catName = view.cat?.name || 'Tabby';
   const [week, setWeek] = useState(false);
   // Where a finger last touched empty space: the cat runs there.
@@ -93,6 +106,37 @@ export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimA
   const swipes = inFolder || view.profiles.length > 1;
   const lift = scroll || swipes;
   const [slide, setSlide] = useState(''); // which side the new profile's keys come in from
+  // Edit mode: keys wiggle; a tap opens a key's editor, a drag moves the key. The PC can turn it off for a device.
+  const [editing, setEditing] = useState(false);
+  const [editKey, setEditKey] = useState<string | null>(null);
+  const [bgPick, setBgPick] = useState(false);
+  const [drag, setDrag] = useState<{ id: string; dx: number; dy: number } | null>(null);
+  const grab = useRef<{ id: string; x: number; y: number; moved: boolean } | null>(null);
+  useEffect(() => { if (view.edit === false) { setEditing(false); setEditKey(null); setBgPick(false); } }, [view.edit]);
+  useEffect(() => {
+    if (!editing) return;
+    const move = (e: PointerEvent) => {
+      const g = grab.current; if (!g) return;
+      const dx = e.clientX - g.x, dy = e.clientY - g.y;
+      if (!g.moved && Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_START) return;
+      g.moved = true; setDrag({ id: g.id, dx, dy });
+    };
+    document.addEventListener('pointermove', move);
+    return () => document.removeEventListener('pointermove', move);
+  }, [editing]);
+  const drop = (w: WidgetView, e: PointerEvent) => {
+    const g = grab.current; grab.current = null; setDrag(null);
+    if (!g || g.id !== w.id) return;
+    if (!g.moved) return setEditKey(w.id);
+    // A phone that shows the keys in fewer columns has them in other places than the PC, so it cannot move them.
+    if (shown.cols !== view.cols) return toast('Turn the phone sideways to move keys, or move them on your PC');
+    const x = Math.max(0, Math.min(shown.cols - w.w, Math.round(w.x + (e.clientX - g.x) / (cell.w + shown.gap))));
+    const y = Math.max(0, Math.min(shown.rows - w.h, Math.round(w.y + (e.clientY - g.y) / (cell.h + shown.gap))));
+    if (x !== w.x || y !== w.y) conn.send({ t: 'edit', widgetId: w.id, x, y });
+  };
+  const editing1 = editKey ? view.widgets.find(w => w.id === editKey) : undefined;
+  const season = view.season === false ? null : seasonFor(new Date());
+  const deco = (w: WidgetView) => (season === 'snow' ? 'snow' : season === 'pumpkin' && !w.value && hasPumpkin(w.id) ? 'pumpkin' : undefined);
 
   const send = (widgetId: string, kind: TriggerKind) => conn.send({ t: 'press', widgetId, kind });
   const trackers = useMemo(() => new Map<string, ReturnType<typeof createPressTracker>>(), [view.folderId, lift]);
@@ -102,7 +146,7 @@ export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimA
     if (!t) {
       // Level keys (Volume +) keep going while held: 400 ms, then a step every 150 ms. While scrolling, keys fire on lift.
       // A key with a warning and its own hold (Screen off): a tap asks first, holding runs the hold at once.
-      const onPress = () => { if (lift && navigator.vibrate) navigator.vibrate(10); if (w.confirm && w.hold) setAsk(w); else send(id, 'press'); };
+      const onPress = () => { if (lift) { if (navigator.vibrate) navigator.vibrate(10); playSound(soundRef.current); } if (w.confirm && w.hold) setAsk(w); else send(id, 'press'); };
       t = createPressTracker({ onPress, onLong: () => send(id, 'long'), onDouble: () => send(id, 'double'), onRelease: () => send(id, 'release') },
         { ...(w.repeat ? { longMs: 400, doubleMs: 300, repeatMs: 150 } : { longMs: 500, doubleMs: 300 }), tap: lift, holdOnly: !!w.hold });
       trackers.set(id, t);
@@ -126,7 +170,7 @@ export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimA
       }
     };
     const end = (e: TouchEvent) => {
-      if (!one || !swipes) return; one = false;
+      if (!one || !swipes || editing) return; one = false;
       const t = e.changedTouches[0], dir = swipeDir(t.clientX - x0, t.clientY - y0);
       if (!dir) return;
       if (inFolder) { if (dir === 1) back(); return; }
@@ -135,7 +179,7 @@ export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimA
     };
     el.addEventListener('touchstart', s, { passive: true }); el.addEventListener('touchmove', move, { passive: true }); el.addEventListener('touchend', end, { passive: true });
     return () => { el.removeEventListener('touchstart', s); el.removeEventListener('touchmove', move); el.removeEventListener('touchend', end); };
-  }, [swipes, inFolder, view.folderId, view.profileId, view.profiles, trackers]);
+  }, [swipes, inFolder, view.folderId, view.profileId, view.profiles, trackers, editing]);
   // The slide only shapes how the new keys arrive; drop it afterwards so a folder opens with the usual rise.
   useEffect(() => { if (!slide) return; const t = setTimeout(() => setSlide(''), 1000); return () => clearTimeout(t); }, [slide, view.profileId]);
 
@@ -144,7 +188,14 @@ export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimA
   const barUp = () => clearTimeout(bar.current);
 
   return (
-    <div class={cat ? 'deck with-cat' : 'deck'} style={{ background: view.bg }}>
+    <div class={`deck${cat ? ' with-cat' : ''}${editing ? ' editing' : ''}`} style={{ background: view.bgImage ? `url("${assetUrl(view.bgImage)}") center / cover no-repeat, ${view.bg}` : view.bg }}>
+      {editing ? (
+        <header class="deck-bar">
+          <span class="bar-side"><button type="button" class="bar-btn text" onClick={() => setBgPick(true)}>Background</button></span>
+          <nav class="crumbs" aria-label="Edit mode"><span class="crumb current edit-pill">Tap a key to change it, drag to move</span></nav>
+          <span class="bar-side end"><button type="button" class="bar-btn text" onClick={() => { setEditing(false); grab.current = null; setDrag(null); }}>Done</button></span>
+        </header>
+      ) : (
       <header class="deck-bar" onPointerDown={barDown} onPointerUp={barUp} onPointerLeave={barUp}>
         <span class="bar-side">
           {inFolder && <button type="button" class="bar-btn" aria-label="Back" onClick={back}><Icon name="caret-left" size={22} /></button>}
@@ -155,14 +206,24 @@ export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimA
         </nav>
         <span class="bar-side end">
           {!fromHomeScreen() && canFullscreen() && <button type="button" class="bar-btn" aria-label={full ? 'Exit full screen' : 'Full screen'} onClick={toggleFullscreen}><Icon name={full ? 'arrows-in' : 'arrows-out'} size={20} /></button>}
-          <button type="button" class="bar-btn" aria-label="Settings" onClick={() => setSheet(true)}><Icon name="gear-six" size={20} /></button>
+          <button type="button" class={newsUnread ? 'bar-btn gear-dot' : 'bar-btn'} aria-label={newsUnread ? 'Settings, something new to read' : 'Settings'} onClick={() => setSheet(true)}><Icon name="gear-six" size={20} /></button>
         </span>
       </header>
+      )}
 
       <div class={`deck-area${scroll ? ' scroll' : ''}${slide ? ` ${slide}` : ''}`} ref={area} onPointerDown={chaseTo}>
         {view.widgets.length === 0
           ? <p class="empty">Nothing here yet. Add buttons in TabbyDeck on your computer.</p>
-          : <Grid view={shown} cell={cell} assetUrl={assetUrl} tileProps={w => ({
+          : <Grid view={shown} cell={cell} assetUrl={assetUrl} tileProps={w => editing ? {
+              deco: deco(w),
+              dragging: drag?.id === w.id,
+              style: drag?.id === w.id ? { transform: `translate(${drag.dx}px, ${drag.dy}px)` } : undefined,
+              onPointerDown: e => { (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); grab.current = { id: w.id, x: e.clientX, y: e.clientY, moved: false }; },
+              onPointerUp: e => drop(w, e),
+              onPointerCancel: () => { grab.current = null; setDrag(null); },
+              onKeyDown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setEditKey(w.id); } },
+            } : ({
+              deco: deco(w),
               pressed: pressed === w.id,
               ripple: ripple && ripple.id === w.id ? ripple : undefined,
               flash: flash && flash.id === w.id ? flash.kind : undefined,
@@ -172,7 +233,7 @@ export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimA
                 setRipple({ id: w.id, x: e.clientX - r.left, y: e.clientY - r.top, n: (ripple?.n ?? 0) + 1 });
                 setPressed(w.id);
                 if (lift) { tap.current = w.id; if (!w.panel && !(w.confirm && !w.hold)) tracker(w).down(); return; } // the touch may still turn into a scroll or swipe
-                el.setPointerCapture?.(e.pointerId); if (navigator.vibrate) navigator.vibrate(10);
+                el.setPointerCapture?.(e.pointerId); if (navigator.vibrate) navigator.vibrate(10); playSound(sound);
                 if (w.panel) setPanel(w.id); else if (w.confirm && !w.hold) setAsk(w); else tracker(w).down();
               },
               onPointerUp: () => {
@@ -196,7 +257,12 @@ export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimA
         onClose={() => setPanel(null)} />}
       {panelKey?.panel === 'bluetooth' && <BluetoothPanel bt={panelKey.bluetooth} onPower={power => conn.send({ t: 'bluetooth', widgetId: panelKey.id, power })} onDevice={(device, connect) => conn.send({ t: 'bluetooth', widgetId: panelKey.id, device, connect })} onClose={() => setPanel(null)} />}
       {panelKey?.panel === 'trackpad' && <TrackpadPanel onSend={padSend} onClose={() => setPanel(null)} />}
-      {sheet && <Sheet view={view} conn={conn} name={name} onRename={onRename} dimAfter={dimAfter} onDimAfter={onDimAfter} onWeek={() => { setSheet(false); onAskStats(); setWeek(true); }} onClose={() => setSheet(false)} />}
+      {sheet && <Sheet view={view} conn={conn} name={name} onRename={onRename} dimAfter={dimAfter} onDimAfter={onDimAfter} onWeek={() => { setSheet(false); onAskStats(); setWeek(true); }} onClose={() => setSheet(false)}
+        sound={sound} onSound={onSound} alarm={alarm} onAlarm={onAlarm} onEdit={view.edit === false ? null : () => { setSheet(false); setPanel(null); setEditing(true); }} onNews={onNews && (() => { setSheet(false); onNews(); })} newsUnread={newsUnread} />}
+      {editing1 && <KeyEditor w={editing1} aspect={(cell.w * editing1.w + shown.gap * (editing1.w - 1)) / (cell.h * editing1.h + shown.gap * (editing1.h - 1))} assetUrl={assetUrl}
+        onSave={p => { conn.send({ t: 'edit', widgetId: editing1.id, ...p }); setEditKey(null); }}
+        onDelete={() => { conn.send({ t: 'edit', widgetId: editing1.id, remove: true }); setEditKey(null); }} onClose={() => setEditKey(null)} />}
+      {bgPick && <BackgroundPicker view={view} onPick={bg => conn.send({ t: 'background', bg })} onPhoto={image => conn.send({ t: 'background', image })} onRemovePhoto={() => conn.send({ t: 'background', image: null })} onClose={() => setBgPick(false)} />}
       {week && <WeekCard stats={stats} onClose={() => setWeek(false)} />}
     </div>
   );
@@ -204,7 +270,8 @@ export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimA
 
 const DIM_LABEL: Record<number, string> = { 0: 'Never', 30000: '30 s', 60000: '1 min', 300000: '5 min' };
 
-function Sheet({ view, conn, name, onRename, dimAfter, onDimAfter, onWeek, onClose }: { view: DeckView; conn: Connection; name: string; onRename(n: string): void; dimAfter: number; onDimAfter(ms: number): void; onWeek(): void; onClose(): void }) {
+function Sheet({ view, conn, name, onRename, dimAfter, onDimAfter, onWeek, onClose, sound, onSound, alarm, onAlarm, onEdit, onNews, newsUnread }: { view: DeckView; conn: Connection; name: string; onRename(n: string): void; dimAfter: number; onDimAfter(ms: number): void; onWeek(): void; onClose(): void;
+  sound: KeySound; onSound(s: KeySound): void; alarm: Alarm; onAlarm(a: Alarm): void; onEdit: (() => void) | null; onNews: (() => void) | null; newsUnread: boolean }) {
   const [draft, setDraft] = useState(name);
   return (
     <div class="sheet-backdrop" onClick={onClose}>
@@ -219,7 +286,23 @@ function Sheet({ view, conn, name, onRename, dimAfter, onDimAfter, onWeek, onClo
             ))}
           </div>
         </>}
-        <button type="button" class="btn week-btn" onClick={onWeek}><Icon name="chart-bar" size={18} />Your week</button>
+        <div class="sheet-row start">
+          <button type="button" class="btn week-btn" onClick={onWeek}><Icon name="chart-bar" size={18} />Your week</button>
+          {onEdit && <button type="button" class="btn" onClick={onEdit}><Icon name="pencil-simple" size={18} />Edit keys</button>}
+        </div>
+        {onNews && <button type="button" class={newsUnread ? 'btn news-btn gear-dot' : 'btn news-btn'} onClick={onNews}><Icon name="sparkle" size={18} />What's new</button>}
+        <h2 class="sheet-h">Key sound</h2>
+        <div class="chips" role="radiogroup" aria-label="Key sound">
+          {SOUNDS.map(k => (
+            <button key={k} type="button" role="radio" aria-checked={k === sound} class={k === sound ? 'chip on' : 'chip'} onClick={() => { onSound(k); playSound(k); }}>{SOUND_NAMES[k]}</button>
+          ))}
+        </div>
+        <h2 class="sheet-h">Timer alarm</h2>
+        <div class="chips" role="radiogroup" aria-label="Timer alarm">
+          {ALARMS.map(a => (
+            <button key={a} type="button" role="radio" aria-checked={a === alarm} class={a === alarm ? 'chip on' : 'chip'} onClick={() => { onAlarm(a); playAlarm(a); }}>{ALARM_NAMES[a]}</button>
+          ))}
+        </div>
         <h2 class="sheet-h">Dim the screen when idle</h2>
         <div class="chips" role="radiogroup" aria-label="Dim the screen when idle">
           {DIM_CHOICES.map(ms => (
@@ -238,6 +321,7 @@ function Sheet({ view, conn, name, onRename, dimAfter, onDimAfter, onWeek, onClo
         </>}
         <div class="sheet-row">
           {!fromHomeScreen() && canFullscreen() && <button type="button" class="btn" onClick={toggleFullscreen}><Icon name="arrows-out" size={18} />Fullscreen</button>}
+          {window.TabbyAndroid && <button type="button" class="btn" onClick={() => window.TabbyAndroid!.changePc()}>Change PC</button>}
           <button type="button" class="btn primary" onClick={onClose}>Done</button>
         </div>
         <p class="hint">Connected to {location.host}</p>

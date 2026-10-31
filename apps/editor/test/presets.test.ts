@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { PRESETS } from '@tabbydeck/shared/presets';
-import { starterProfileFile } from '@tabbydeck/shared';
+import { starterProfileFiles } from '@tabbydeck/shared';
 import { ICON_NAMES } from '@tabbydeck/ui';
 import { appWidget, appsWidget, presetWidget } from '../src/components/PresetPicker.tsx';
 
 describe('presets in the editor', () => {
   it('every preset and starter-deck icon is in the icon set', () => {
     const known = new Set(ICON_NAMES);
-    expect(starterProfileFile().widgets.filter(w => !known.has(w.look.icon!)).map(w => w.look.icon)).toEqual([]);
+    expect(starterProfileFiles().flatMap(f => f.widgets).filter(w => !known.has(w.look.icon!)).map(w => w.look.icon)).toEqual([]);
     expect(PRESETS.filter(p => !known.has(p.icon)).map(p => `${p.id}: ${p.icon}`)).toEqual([]);
   });
   it('a preset becomes a button at the chosen cell with its look and press steps', () => {

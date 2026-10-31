@@ -78,6 +78,9 @@ export const PRESETS: Preset[] = [
   { id: 'close-tab', group: 'Editing', label: 'Close tab', icon: 'x-circle', bg: KEY, steps: hotkey('Ctrl+W') },
 
   { id: 'snip', group: 'Windows', label: 'Snip', icon: 'crop', bg: '#3b2a4d', steps: hotkey('Win+Shift+S') },
+  // The snip bar opened with its mode already picked.
+  { id: 'snip-area', group: 'Windows', label: 'Snip area', icon: 'selection', bg: '#3b2a4d', steps: [{ action: 'system.openUrl', params: { url: 'ms-screenclip://capture/image?rectangle' } }] },
+  { id: 'snip-window', group: 'Windows', label: 'Snip window', icon: 'app-window', bg: '#3b2a4d', steps: [{ action: 'system.openUrl', params: { url: 'ms-screenclip://capture/image?window' } }] },
   { id: 'screenshot', group: 'Windows', label: 'Screenshot', icon: 'camera', bg: KEY, steps: [{ action: 'system.screenshot' }] },
   { id: 'desktop', group: 'Windows', label: 'Desktop', icon: 'desktop', bg: KEY, steps: hotkey('Win+D') },
   { id: 'task-view', group: 'Windows', label: 'Task View', icon: 'squares-four', bg: KEY, steps: hotkey('Win+Tab') },
@@ -96,6 +99,8 @@ export const PRESETS: Preset[] = [
   { id: 'cpu', group: 'Info', label: 'CPU', icon: 'cpu', bg: '#1e293b', fg: '#93c5fd', steps: [{ action: 'info.show', params: { show: 'cpu' } }] },
   { id: 'ram', group: 'Info', label: 'Memory', icon: 'memory', bg: '#1e293b', fg: '#c4b5fd', steps: [{ action: 'info.show', params: { show: 'ram' } }] },
   { id: 'battery', group: 'Info', label: 'Battery', icon: 'battery-high', bg: '#14281d', fg: '#86efac', steps: [{ action: 'info.show', params: { show: 'battery' } }] },
+  { id: 'weather', group: 'Info', label: 'Weather', icon: 'cloud-sun', bg: '#1e3a5f', fg: '#fde68a', steps: [{ action: 'info.temperature', params: { source: 'weather', city: '', unit: 'c' } }] },
+  { id: 'cpu-temp', group: 'Info', label: 'CPU temp', icon: 'thermometer-hot', bg: '#3b1d1d', fg: '#fca5a5', steps: [{ action: 'info.temperature', params: { source: 'cpu', city: '', unit: 'c' } }] },
   { id: 'clock', group: 'Info', label: 'Clock', icon: 'clock', bg: '#1c1917', fg: '#fde68a', steps: [{ action: 'info.show', params: { show: 'clock' } }] },
   { id: 'timer', group: 'Info', label: 'Timer', icon: 'hourglass-medium', bg: '#1c2b22', fg: '#86efac', steps: [{ action: 'timer.countdown', params: { minutes: 5 } }], long: [{ action: 'timer.reset' }] },
   { id: 'pomodoro', group: 'Info', label: 'Focus', icon: 'timer', bg: '#3b1d1d', fg: '#fca5a5', steps: [{ action: 'timer.pomodoro', params: { focus: 25, rest: 5 } }], long: [{ action: 'timer.reset' }] },

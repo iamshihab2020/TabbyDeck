@@ -8,12 +8,12 @@ const resolve = (mode: unknown, current: boolean) => (mode === 'toggle' ? !curre
 export function registerAudio(registry: ActionRegistry, deps: { native: Native }): void {
   const { audio } = deps.native;
   registry.register({
-    id: 'system.volume', name: 'Set volume', group: 'Audio',
+    id: 'system.volume', name: 'Set volume', description: 'Sets the PC volume to a level', group: 'Audio',
     schema: { percent: { type: 'number', title: 'Volume %', required: true, min: 0, max: 100 } },
     run: p => audio.setVolume(Number(p.percent)),
   });
   registry.register({
-    id: 'system.volumeStep', name: 'Volume up or down', group: 'Audio',
+    id: 'system.volumeStep', name: 'Volume up or down', description: 'Turns the PC volume up or down by a step; hold the key to keep going', group: 'Audio',
     schema: { delta: { type: 'number', title: 'Change (e.g. 5 or -5)', default: 5, min: -100, max: 100 } },
     run: async p => audio.setVolume(Math.max(0, Math.min(100, (await audio.getVolume()) + Number(p.delta)))),
   });
@@ -36,6 +36,6 @@ export function registerAudio(registry: ActionRegistry, deps: { native: Native }
       await audio.setOutput(all[(i + 1) % all.length].id);
     },
   });
-  registry.register({ id: 'system.mute', name: 'Mute sound', group: 'Audio', schema: { mode: MODE }, run: async p => audio.setMute(resolve(p.mode, await audio.getMute())) });
-  registry.register({ id: 'system.micMute', name: 'Mute microphone', group: 'Audio', schema: { mode: MODE }, run: async p => audio.setMicMute(resolve(p.mode, await audio.getMicMute())) });
+  registry.register({ id: 'system.mute', name: 'Mute sound', description: 'Mutes or unmutes the PC sound; the key lights while muted', group: 'Audio', schema: { mode: MODE }, run: async p => audio.setMute(resolve(p.mode, await audio.getMute())) });
+  registry.register({ id: 'system.micMute', name: 'Mute microphone', description: 'Mutes or unmutes the microphone; the key lights while muted', group: 'Audio', schema: { mode: MODE }, run: async p => audio.setMicMute(resolve(p.mode, await audio.getMicMute())) });
 }

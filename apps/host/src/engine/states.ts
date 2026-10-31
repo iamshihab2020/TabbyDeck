@@ -1,12 +1,14 @@
 import { createHash } from 'node:crypto';
 import { levelOf, levelView, panelOf, statefulAction, type AppSound, type AudioOutput, type Bluetooth, type Look, type Screen, type Widget } from '@tabbydeck/shared';
 import type { Store } from '../store/store.ts';
-import type { Native } from '../native/types.ts';
+import type { Native, WindowInfo } from '../native/types.ts';
+import { matchesWindow } from '../native/match.ts';
+import { expandEnv } from '../integrations/system.ts';
 import type { Clients } from '../server/clients.ts';
 
 /** What a key shows of the PC's live state: on or off, a level with the key greyed out at its end, or the screens. */
 export interface Live {
-  active?: boolean; value?: string; disabled?: boolean; screens?: Screen[]; level?: number; muted?: boolean; bluetooth?: Bluetooth;
+  active?: boolean; running?: boolean; value?: string; disabled?: boolean; screens?: Screen[]; level?: number; muted?: boolean; bluetooth?: Bluetooth;
   apps?: AppSound[]; outputs?: AudioOutput[]; big?: string;
   /** Replaces parts of the key's own look while the state lasts (Now playing shows the title and cover). */
   look?: Partial<Look>;
@@ -16,11 +18,31 @@ export interface Live {
 const PANEL_STATE: Record<string, string> = { brightness: 'screens', volume: 'sound', bluetooth: 'bluetoothPanel' };
 
 // Keys whose first step reads a richer state than on or off.
-const LIVE_STATE: Record<string, string> = { 'media.nowPlaying': 'nowPlaying', 'audio.output': 'outputs' };
+const LIVE_STATE: Record<string, string> = { 'media.nowPlaying': 'nowPlaying', 'audio.output': 'outputs', 'system.launch': 'windows', 'system.focus': 'windows' };
+
+const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/**
+ * Whether the app a key opens (system.launch) or switches to (system.focus) has a window open. A program path matches
+ * its program file; a Start app (shell:AppsFolder\<id>) matches by its Start name: the program file (GitHub Desktop is
+ * githubdesktop.exe) or the end of the title ("… - Visual Studio Code"). Files, folders and links never count.
+ */
+export function appOpen(action: string, params: Record<string, unknown>, windows: WindowInfo[], appName: (id: string) => string | undefined = () => undefined): boolean {
+  // Program Manager is the desktop itself, always there under explorer.exe.
+  const open = windows.filter(w => !(w.exe === 'explorer.exe' && w.title === 'Program Manager'));
+  if (action === 'system.focus') return open.some(w => matchesWindow(String(params.title ?? ''), w));
+  const p = expandEnv(String(params.path ?? '').trim()), app = /^shell:AppsFolder\\(.+)$/i.exec(p);
+  const exeIn = (s: string) => /\.exe$/i.test(s) ? s.split(/[\\/]/).pop()!.toLowerCase() : '';
+  if (!app) { const exe = exeIn(p); return !!exe && open.some(w => w.exe === exe); }
+  const exe = exeIn(app[1]); if (exe) return open.some(w => w.exe === exe); // {known folder}\path\app.exe
+  const name = appName(app[1]), title = name?.toLowerCase();
+  const ids = [name && norm(name), norm(app[1].split('!')[0].split('_')[0].split('.').pop() ?? '')].filter(Boolean);
+  return open.some(w => ids.includes(norm(w.exe.replace(/\.exe$/, ''))) || (!!title && w.title.replace(/[​-‍]/g, '').toLowerCase().endsWith(title)));
+}
 
 type Sound = { level: number; muted: boolean; apps: AppSound[]; outputs: AudioOutput[] };
 type Track = { track: { title: string; artist: string; playing: boolean; art?: string } | null };
-type State = boolean | number | Screen[] | Sound | Bluetooth | Track | { outputs: AudioOutput[] };
+type State = boolean | number | Screen[] | Sound | Bluetooth | Track | { outputs: AudioOutput[] } | { running: string[] };
 
 /** The cover art of what is playing, served to the decks at /assets/u/<id>. */
 export interface Art { id: string; type: string; data: Buffer }
@@ -43,8 +65,9 @@ export class StateWatcher {
   art: Art | null = null;
   private artFor = '';
 
-  constructor(private d: { store: Store; native: Native; clients: Clients; intervalMs?: number }) {
+  constructor(private d: { store: Store; native: Native; clients: Clients; intervalMs?: number; appName?: (id: string) => string | undefined }) {
     const n = d.native;
+    this.state.set('windows', { running: [] }); // until the first look, no app is open: keys show plain and nothing is sent
     this.read = {
       'system.mute': () => n.audio.getMute(),
       'system.micMute': () => n.audio.getMicMute(),
@@ -70,6 +93,15 @@ ${t.artist}`;
         return { track: { ...t, ...(this.art ? { art: this.art.id } : {}) } };
       },
       outputs: async () => ({ outputs: await n.audio.outputs() }),
+      // Kept as the ids of the app keys whose app is open, so a window title changing sends nothing.
+      windows: async () => {
+        const open = n.system.windows(), running: string[] = [];
+        for (const f of d.store.profiles()) for (const w of f.widgets) {
+          const s = w.config.kind === 'button' ? w.config.triggers.press?.[0] : undefined;
+          if (s && LIVE_STATE[s.action] === 'windows' && appOpen(s.action, s.params, open, d.appName)) running.push(w.id);
+        }
+        return { running: running.sort() };
+      },
       bluetoothPanel: async () => {
         let on: boolean;
         try { on = await n.system.getBluetooth(); } catch { return { available: false, on: false, devices: [] }; } // no Bluetooth here
@@ -92,6 +124,7 @@ ${t.artist}`;
   liveOf = (w: Widget): Live => {
     const k = StateWatcher.key(w), v = k === undefined ? undefined : this.state.get(k);
     if (typeof v === 'boolean') return { active: v };
+    if (v && typeof v === 'object' && 'running' in v) return { running: v.running.includes(w.id) };
     if (typeof v === 'number') return levelView(levelOf(w)!.dir, [v]);
     if (v && typeof v === 'object' && 'track' in v) {
       const t = v.track;

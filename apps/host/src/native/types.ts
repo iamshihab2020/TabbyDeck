@@ -121,6 +121,8 @@ export interface NativeSysInfo {
   ramPercent(): number;
   /** The battery's charge, and whether the PC is plugged in; null on a PC without a battery. */
   battery(): { percent: number; charging: boolean } | null;
+  /** The hottest thermal zone in °C, or null when the PC does not report one to normal apps. */
+  cpuTemp(): Promise<number | null>;
 }
 
 export interface Native {

@@ -14,6 +14,7 @@ import { SettingsPage } from './pages/Settings.tsx';
 import { ApproveModal, type PendingDevice } from './components/ApproveModal.tsx';
 import { useApi } from './state.ts';
 import { ConnectReminder, Guide, Tour } from './components/Guide.tsx';
+import { WhatsNew } from './components/WhatsNew.tsx';
 
 export function App() {
   const api = useMemo(() => {
@@ -71,6 +72,7 @@ function Shell() {
       {approving && <ApproveModal device={approving} onClose={() => setApproving(null)} />}
       {!state.settings.guideDone && <Guide onTour={() => { setPage('deck'); setTouring(true); }} />}
       {touring && page === 'deck' && <Tour onDone={() => setTouring(false)} />}
+      <WhatsNew onPage={setPage} />{/* also on a first install, to note the version as seen while the guide shows */}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useMemo } from 'preact/hooks';
 import type { StatsSummary } from '@tabbydeck/shared';
 import { BadgeArt, Icon } from '@tabbydeck/ui';
 import { BADGES } from '@tabbydeck/shared/badges';
+import { Sprout } from './Cat.tsx';
 
 const DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const weekday = (date: string) => new Date(`${date}T12:00:00`).getDay();
@@ -41,6 +42,12 @@ export function WeekCard({ stats, onClose }: { stats: StatsSummary | null; onClo
             <li><Icon name="app-window" size={18} /><span>{stats.apps[0] ? <>Most time in <b>{stats.apps[0].app}</b>: {hoursText(stats.apps[0].minutes)}</> : 'No app time counted yet'}</span></li>
             <li><Icon name="squares-four" size={18} /><span><b>{stats.total}</b> key presses in all</span></li>
           </ul>
+          {stats.garden && stats.garden.some(d => d.plants || d.wilted) && <>
+            <ul class="week-facts"><li><Icon name="leaf" size={18} /><span>Focus garden: <b>{stats.garden.reduce((n, d) => n + d.plants, 0)}</b> grown{stats.garden.some(d => d.wilted) ? `, ${stats.garden.reduce((n, d) => n + d.wilted, 0)} wilted` : ''}</span></li></ul>
+            <div class="week-garden" role="img" aria-label={stats.garden.map(d => `${FULL[weekday(d.date)]} ${d.plants} grown, ${d.wilted} wilted`).join('; ')}>
+              {stats.garden.map(d => <span key={d.date}>{[...Array(Math.min(4, d.plants))].map((_, i) => <Sprout key={i} size={18} wilted={false} n={i} />)}{[...Array(Math.min(2, d.wilted))].map((_, i) => <Sprout key={`w${i}`} size={18} wilted />)}</span>)}
+            </div>
+          </>}
           {stats.badges.length > 0 && <div class="week-badges">{stats.badges.map(b => <span key={b.id + b.date} class="week-badge"><BadgeArt id={b.id} size={26} />{BADGES[b.id].name} · {DAY[weekday(b.date)]}</span>)}</div>}
           <p class="hint">Counted on your PC only. The editor's Stats page has every key and app.</p>
         </>}

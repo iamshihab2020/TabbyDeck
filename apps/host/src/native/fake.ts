@@ -6,7 +6,7 @@ import type { AppSound, AudioOutput, Native, NowPlaying, ScreenInfo, WindowInfo 
 const TINY_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 
 export interface FakeNative extends Native { calls: { method: string; args: unknown[] }[]; volume: number; mute: boolean; micMute: boolean; screens: ScreenInfo[]; screensDark: boolean; nightLight: boolean; energySaver: boolean; bluetooth: boolean; btDevices: BtDevice[]; playing: boolean;
-  outputs: AudioOutput[]; apps: AppSound[]; open: WindowInfo[]; front: WindowInfo | null; track: NowPlaying | null; camera: boolean; mic: string[]; dnd: boolean; firewall: 'allowed' | 'blocked' | 'missing' | 'unknown'; batteryLevel: { percent: number; charging: boolean } | null }
+  outputs: AudioOutput[]; apps: AppSound[]; open: WindowInfo[]; front: WindowInfo | null; track: NowPlaying | null; camera: boolean; mic: string[]; dnd: boolean; firewall: 'allowed' | 'blocked' | 'missing' | 'unknown'; batteryLevel: { percent: number; charging: boolean } | null; tempC: number | null }
 
 /** Records every call; used by tests and by `--fake-native` runs (e2e, CI). */
 export function createFakeNative(opts: { echo?: (line: string) => void } = {}): FakeNative {
@@ -17,7 +17,7 @@ export function createFakeNative(opts: { echo?: (line: string) => void } = {}): 
     outputs: [{ id: 'spk', name: 'Speakers', isDefault: true }, { id: 'hp', name: 'Headphones', isDefault: false }],
     apps: [{ id: 'spotify', name: 'Spotify', level: 80, muted: false }, { id: 'chrome', name: 'Google Chrome', level: 100, muted: false }],
     open: [{ title: 'main.ts - Visual Studio Code', exe: 'code.exe' }, { title: 'Spotify Premium', exe: 'spotify.exe' }],
-    front: null, track: null, camera: false, mic: [], dnd: false, firewall: 'allowed', batteryLevel: null,
+    front: null, track: null, camera: false, mic: [], dnd: false, firewall: 'allowed', batteryLevel: null, tempC: 52,
     btDevices: [{ id: '00aa11bb22cc', name: 'Headphones', audio: true, connected: false }, { id: '00dd33ee44ff', name: 'Mouse', audio: false, connected: true }],
     input: {
       keyDown: vk => rec('keyDown', vk), keyUp: vk => rec('keyUp', vk), typeText: t => rec('typeText', t),
@@ -75,7 +75,7 @@ export function createFakeNative(opts: { echo?: (line: string) => void } = {}): 
       screensBack: () => { const was = n.screensDark; n.screensDark = false; return was; },
       screensOff: async id => { rec('screensOff', id); if (id === 'all') n.screensDark = true; if (id !== 'all' && !n.screens.some(s => s.id === id)) throw new Error('That screen is not connected'); },
     },
-    sysinfo: { cpuPercent: () => 12, ramPercent: () => 40, battery: () => n.batteryLevel && { ...n.batteryLevel } },
+    sysinfo: { cpuPercent: () => 12, ramPercent: () => 40, battery: () => n.batteryLevel && { ...n.batteryLevel }, cpuTemp: async () => n.tempC },
     dispose: async () => {},
   };
   return n;

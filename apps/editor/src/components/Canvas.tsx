@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { DEFAULT_LOOK, type ProfileFile, type Widget } from '@tabbydeck/shared';
 import { planReflow } from '@tabbydeck/shared/layout';
 import { Icon, Tile, cellOffset, cellSpan, useCellSize } from '@tabbydeck/ui';
@@ -40,6 +40,15 @@ export function Canvas({ file, folderId, profiles, selected, onSelect, onOpenFol
   const danger = new Set(state?.catalogue.filter(a => a.danger).map(a => a.id));
   const dragRef = useRef<Drag | null>(null);
   dragRef.current = drag;
+  // Where the grid and the tablet sit inside the stage, so the rulers line up with the cells.
+  const stageEl = useRef<HTMLDivElement>(null);
+  const [at, setAt] = useState({ gx: 0, gy: 0, bx: 0, by: 0 });
+  useLayoutEffect(() => {
+    const s = stageEl.current?.getBoundingClientRect(), g = gridEl.current?.getBoundingClientRect(), b = screen.current?.parentElement?.getBoundingClientRect();
+    if (!s || !g || !b) return;
+    const next = { gx: Math.round(g.left - s.left), gy: Math.round(g.top - s.top), bx: Math.round(b.left - s.left), by: Math.round(b.top - s.top) };
+    if (next.gx !== at.gx || next.gy !== at.gy || next.bx !== at.bx || next.by !== at.by) setAt(next);
+  });
 
   const pos = (r: { x: number; y: number; w: number; h: number }) => ({
     left: `${cellOffset(r.x, cell.w, gap)}px`, top: `${cellOffset(r.y, cell.h, gap)}px`,
@@ -172,10 +181,13 @@ export function Canvas({ file, folderId, profiles, selected, onSelect, onOpenFol
   };
 
   const sel = widgets.find(w => w.id === selected);
+  // The rulers light the columns and rows the selected key (or the one being dragged) covers.
+  const lit = drag?.moved && drag.preview ? drag.preview : sel;
+  const on = (i: number, from?: number, span?: number) => from !== undefined && span !== undefined && i >= from && i < from + span;
   return (
-    <div class="stage" onKeyDown={onKey} tabIndex={0} aria-label="Deck canvas. Arrow keys move the selected button." onMouseDown={e => { if (e.target === e.currentTarget) onSelect(null); }}>
+    <div class="stage" ref={stageEl} onKeyDown={onKey} tabIndex={0} aria-label="Deck canvas. Arrow keys move the selected button." onMouseDown={e => { if (e.target === e.currentTarget) onSelect(null); }}>
       <div class="bezel">
-        <div class="screen" ref={screen} style={{ background: view.bg }}>
+        <div class="screen" ref={screen} style={{ background: view.bgImage ? `url("${assetUrl(view.bgImage)}") center / cover no-repeat, ${view.bg}` : view.bg }}>
           <div class={`canvas-grid tiles-${file.profile.tiles ?? 'keycap'}`} ref={gridEl} style={{ width: `${cellSpan(cols, cell.w, gap)}px`, height: `${cellSpan(rows, cell.h, gap)}px` }}>
             {freeCells(widgets, cols, rows).map(c => (
               <button key={`${c.x},${c.y}`} type="button" class="slot" style={pos({ ...c, w: 1, h: 1 })} aria-label={`Empty cell, column ${c.x + 1}, row ${c.y + 1}. Add a button.`}
@@ -210,6 +222,14 @@ export function Canvas({ file, folderId, profiles, selected, onSelect, onOpenFol
           </div>
         </div>
       </div>
+      {cell.w > 0 && <>
+        <div class="ruler cols" aria-hidden="true" style={{ top: `${at.by - 24}px` }}>
+          {Array.from({ length: cols }, (_, i) => <span key={i} class={on(i, lit?.x, lit?.w) ? 'on' : ''} style={{ left: `${at.gx + cellOffset(i, cell.w, gap)}px`, width: `${cell.w}px` }}>{i + 1}</span>)}
+        </div>
+        <div class="ruler rows" aria-hidden="true" style={{ left: `${at.bx - 26}px` }}>
+          {Array.from({ length: rows }, (_, i) => <span key={i} class={on(i, lit?.y, lit?.h) ? 'on' : ''} style={{ top: `${at.gy + cellOffset(i, cell.h, gap)}px`, height: `${cell.h}px` }}>{i + 1}</span>)}
+        </div>
+      </>}
       {menu && <ContextMenu {...menu} onClose={() => setMenu(null)} />}
       {picker && <PresetPicker danger={danger} onPick={p => void pick(p)} onClose={() => setPicker(null)} />}
     </div>
