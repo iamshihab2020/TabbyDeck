@@ -1,11 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { render } from 'preact-render-to-string';
-import { DEFAULT_LOOK, type DeckView } from '@tabbydeck/shared';
+import { DEFAULT_LOOK, TILE_STYLES, type DeckView } from '@tabbydeck/shared';
 import { tileStyle, Tile, Grid, Icon, ICON_NAMES, gridCellSize } from '../src/index.ts';
 
 const sprite = readFileSync(new URL('../src/icons/sprite.svg', import.meta.url), 'utf8');
 const tokens = readFileSync(new URL('../src/tokens.css', import.meta.url), 'utf8');
+
+describe('the glow colour (Neon)', () => {
+  it('is the brighter of the key\'s two colours, so a light key with dark text still glows', () => {
+    expect(tileStyle({ ...DEFAULT_LOOK, bg: '#f5a524', fg: '#2a1a00' }, 96).style['--glow-rgb']).toBe('245, 165, 36');
+    expect(tileStyle({ ...DEFAULT_LOOK, bg: '#25221f', fg: '#fcd34d' }, 96).style['--glow-rgb']).toBe('252, 211, 77');
+  });
+  it('is the one colour there is when the other is not a hex colour', () => {
+    expect(tileStyle({ ...DEFAULT_LOOK, bg: 'linear-gradient(red, blue)', fg: '#ffffff' }, 96).style['--glow-rgb']).toBe('255, 255, 255');
+  });
+});
 
 describe('tileStyle', () => {
   it('maps radius 16 to 16px border radius', () => {
@@ -56,6 +66,13 @@ describe('tokens.css', () => {
   it('defines the amber accent in dark and light', () => {
     expect(tokens).toContain('#f5a524');
     expect(tokens).toContain('#b86e00');
+  });
+  it('offers fourteen key styles, the six first ones unmoved', () => {
+    expect(TILE_STYLES).toEqual(['keycap', 'sunken', 'soft', 'glass', 'pad', 'outline', 'bordered', 'flat', 'neon', 'brushed', 'arcade', 'pixel', 'classic', 'crt']);
+  });
+  it('draws every key style other than keycap (the plain tile) its own way, at rest and pressed', () => {
+    const missing = TILE_STYLES.filter(s => s !== 'keycap').flatMap(s => [`.tiles-${s} .tb-tile {`, `.tiles-${s} .tb-tile.tb-pressed {`]).filter(rule => !tokens.includes(rule));
+    expect(missing).toEqual([]);
   });
 });
 

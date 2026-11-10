@@ -1,4 +1,4 @@
-import type { ParamField } from '@tabbydeck/shared';
+import { PANEL_STYLE, type ParamField } from '@tabbydeck/shared';
 import type { ActionRegistry } from '../engine/registry.ts';
 import type { Native } from '../native/types.ts';
 
@@ -18,12 +18,13 @@ export function registerAudio(registry: ActionRegistry, deps: { native: Native }
     run: async p => audio.setVolume(Math.max(0, Math.min(100, (await audio.getVolume()) + Number(p.delta)))),
   });
   registry.register({
-    id: 'system.volumePanel', name: 'Volume slider', group: 'Audio', description: 'Opens a panel on the tablet to drag the volume, or mute',
-    schema: {},
-    run: async () => {}, // the tablet opens the panel itself; its slider sets the volume
+    id: 'system.volumePanel', name: 'Volume slider or wheel', group: 'Audio',
+    description: 'Opens a panel on the tablet to set the volume, or mute: sliders for the PC and each app, or a wheel to turn',
+    schema: { style: PANEL_STYLE },
+    run: async () => {}, // the tablet opens the panel itself; its slider or wheel sets the volume
   });
   registry.register({
-    id: 'audio.output', name: 'Switch sound output', group: 'Audio', description: 'Play through other speakers or headphones. Leave it empty to go to the next output each press.',
+    id: 'audio.output', name: 'Switch sound output', group: 'Audio', description: 'Play through other speakers or headphones. Leave it empty to choose from a list on the phone each time.',
     schema: { output: { type: 'audioOutput', title: 'Output' } },
     run: async p => {
       const all = await audio.outputs(), want = String(p.output ?? '');

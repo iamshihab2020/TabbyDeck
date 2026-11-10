@@ -18,16 +18,27 @@ export function rgbVar(name: string, hex: string | undefined): Css {
   return { [name]: [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)).join(', ') };
 }
 
+/** How light an "r, g, b" colour looks, enough to tell the lighter of two apart. */
+const lightness = (rgb: string) => { const [r, g, b] = rgb.split(', ').map(Number); return 0.299 * r + 0.587 * g + 0.114 * b; };
+
+/** The brighter of the key's colours as "r, g, b", for styles that glow (Neon): a light key with dark text glows in its own colour. */
+function glowVar(key: Css, fg: Css): Css {
+  const k = key['--key-rgb'] as string | undefined, f = fg['--fg-rgb'] as string | undefined;
+  const glow = k && f ? (lightness(k) > lightness(f) ? k : f) : f ?? k;
+  return glow ? { '--glow-rgb': glow } : {};
+}
+
 /** Pure mapping from a Look to inline styles for a tile of the given cell size. */
 export function tileStyle(look: Look, cellPx: number, labelLines = 1): { style: Css; innerStyle: Css; iconStyle: Css; labelStyle: Css; iconPx: number } {
   const k = cellPx / REFERENCE_CELL;
   const iconPx = Math.round(cellPx * ICON_FRACTION * look.iconScale);
   const labelBelowIcon = look.labelPos === 'bottom' && look.label;
+  const keyRgb = rgbVar('--key-rgb', look.bg), fgRgb = rgbVar('--fg-rgb', look.fg);
   const style: Css = {
     // A colour, not the background shorthand, so a key style can lay its own light and shading over it; the rgb parts
     // let a style use the key's colours see-through (glass, outline) on browsers without color-mix.
     backgroundColor: look.bg,
-    ...rgbVar('--key-rgb', look.bg), ...rgbVar('--fg-rgb', look.fg),
+    ...keyRgb, ...fgRgb, ...glowVar(keyRgb, fgRgb),
     color: look.fg,
     borderRadius: `${look.radius}px`,
     justifyContent: JUSTIFY[look.labelPos],

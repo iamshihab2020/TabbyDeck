@@ -143,7 +143,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* ---- key styles (a profile picks one; keycap above is the default) ----
    Each is a real kind of button. --key-rgb and --fg-rgb are the key's own colours as "r, g, b", for see-through
    shades. Shadows stay inside the gap between keys (16 px by default). No background blur: the floor is Chrome 60. */
-.tb-tile { --key-rgb: 37, 34, 31; --fg-rgb: 239, 234, 227; }
+.tb-tile { --key-rgb: 37, 34, 31; --fg-rgb: 239, 234, 227; --glow-rgb: 239, 234, 227; }
 
 /* Sunken: set into the panel, like a dashboard switch. The well's top edge shades it; a press goes deeper. */
 .tiles-sunken .tb-tile {
@@ -200,6 +200,102 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .tiles-outline .tb-tile { background-color: rgba(var(--key-rgb), 0.16) !important; box-shadow: inset 0 0 0 1.5px rgba(var(--fg-rgb), 0.36); }
 .tiles-outline .tb-tile.tb-pressed { transform: scale(0.97); background-color: rgba(var(--fg-rgb), 0.14) !important; box-shadow: inset 0 0 0 2px rgba(var(--fg-rgb), 0.85); }
 .tiles-outline .tb-tile.tb-pressed::before { opacity: 0; }
+
+/* Bordered sunken: a sunken well inside a raised border in the key's own colour. A press deepens it and lights the border. */
+.tiles-bordered .tb-tile {
+  background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.34) 0%, rgba(0, 0, 0, 0.06) 45%, rgba(255, 255, 255, 0.04) 100%);
+  box-shadow: inset 0 0 0 2px rgba(var(--fg-rgb), 0.5), inset 0 7px 12px rgba(0, 0, 0, 0.72), inset 0 -1px 0 rgba(255, 255, 255, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.55), 0 2px 0 1px rgba(255, 255, 255, 0.06);
+}
+.tiles-bordered .tb-tile.tb-pressed {
+  transform: scale(0.975);
+  box-shadow: inset 0 0 0 2px rgba(var(--fg-rgb), 0.9), inset 0 10px 18px rgba(0, 0, 0, 0.85), inset 0 -1px 0 rgba(255, 255, 255, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.55), 0 0 14px rgba(var(--fg-rgb), 0.3);
+}
+
+/* Flat: plain colour with no light or shadow, like icons on a phone's home screen. */
+.tiles-flat .tb-tile { box-shadow: none; }
+.tiles-flat .tb-tile.tb-pressed { transform: scale(0.96); box-shadow: none; }
+.tiles-flat .tb-tile-label, .tiles-flat .tb-value { text-shadow: none; }
+
+/* Neon: a dark key outlined in glowing tube light, the icon and label glowing too, all in the brighter of the key's two
+   colours (--glow-rgb), so a light key with dark text glows in its own colour. A press burns brighter. */
+.tiles-neon .tb-tile {
+  background-color: rgba(var(--key-rgb), 0.16) !important; color: rgb(var(--glow-rgb)) !important;
+  box-shadow: inset 0 0 0 1.5px rgba(var(--glow-rgb), 0.9), inset 0 0 14px rgba(var(--glow-rgb), 0.3), 0 0 10px rgba(var(--glow-rgb), 0.4);
+}
+.tiles-neon .tb-tile.tb-pressed {
+  transform: scale(0.97);
+  background-color: rgba(var(--glow-rgb), 0.16) !important;
+  box-shadow: inset 0 0 0 2px rgba(var(--glow-rgb), 1), inset 0 0 22px rgba(var(--glow-rgb), 0.55), 0 0 20px 2px rgba(var(--glow-rgb), 0.65);
+}
+.tiles-neon .tb-tile-icon { filter: drop-shadow(0 0 4px rgba(var(--glow-rgb), 0.8)); }
+.tiles-crt .tb-tile-icon { filter: drop-shadow(0 0 4px rgba(var(--fg-rgb), 0.8)); }
+.tiles-neon .tb-tile-label, .tiles-neon .tb-big { text-shadow: 0 0 6px rgba(var(--glow-rgb), 0.85); }
+
+/* Brushed metal: anodised aluminium in the key's colour, with a fine brushed grain, a sheen across it and bevelled edges. */
+.tiles-brushed .tb-tile {
+  background-image:
+    linear-gradient(115deg, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.16) 48%, rgba(255, 255, 255, 0) 66%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.045) 0, rgba(255, 255, 255, 0.045) 1px, rgba(0, 0, 0, 0.05) 1px, rgba(0, 0, 0, 0.05) 2px, rgba(255, 255, 255, 0) 2px, rgba(255, 255, 255, 0) 3px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 45%, rgba(0, 0, 0, 0.2));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), inset 0 -1px 0 rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(0, 0, 0, 0.3), 0 3px 6px rgba(0, 0, 0, 0.45);
+}
+.tiles-brushed .tb-tile.tb-pressed {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5), inset 0 -1px 0 rgba(255, 255, 255, 0.12), inset 0 0 0 1px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+/* Arcade: a glossy domed button in a dark ring, as on an arcade cabinet. A press pushes the dome down. */
+.tiles-arcade .tb-tile {
+  background-image: radial-gradient(ellipse 72% 42% at 50% 16%, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 70%), radial-gradient(ellipse 110% 95% at 50% 38%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.4) 100%);
+  box-shadow: inset 0 0 0 3px rgba(0, 0, 0, 0.55), inset 0 -5px 9px rgba(0, 0, 0, 0.35), inset 0 0 0 4px rgba(255, 255, 255, 0.1), 0 5px 9px rgba(0, 0, 0, 0.5);
+}
+.tiles-arcade .tb-tile.tb-pressed {
+  transform: translateY(2px) scale(0.95);
+  background-image: radial-gradient(ellipse 60% 32% at 50% 20%, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 70%), radial-gradient(ellipse 110% 95% at 50% 38%, rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, 0.5) 100%);
+  box-shadow: inset 0 0 0 3px rgba(0, 0, 0, 0.65), inset 0 5px 10px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Pixel: square 8-bit keys with a black outline and a hard stepped shadow; a press moves the key onto its shadow. */
+.tiles-pixel .tb-tile {
+  border-radius: 0 !important;
+  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.35), inset 3px 3px 0 rgba(255, 255, 255, 0.2), 0 0 0 2px #0d0d0d, 4px 4px 0 2px #0d0d0d;
+  transition-timing-function: steps(2);
+}
+.tiles-pixel .tb-tile.tb-pressed {
+  transform: translate(4px, 4px);
+  box-shadow: inset 3px 3px 0 rgba(0, 0, 0, 0.35), inset -3px -3px 0 rgba(255, 255, 255, 0.1), 0 0 0 2px #0d0d0d, 0 0 0 2px #0d0d0d;
+}
+.tiles-pixel .tb-tile-label, .tiles-crt .tb-tile-label, .tiles-crt .tb-big { font-family: ui-monospace, 'Cascadia Mono', Consolas, 'Droid Sans Mono', 'Courier New', monospace; }
+.tiles-pixel .tb-tile-label { font-weight: 700; text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.55); }
+
+/* Classic: bevelled buttons from the Windows of the 1990s, light from the top left. A press flips the bevel and nudges the face. */
+.tiles-classic .tb-tile {
+  border-radius: 2px !important;
+  box-shadow: inset -1px -1px 0 #050505, inset 1px 1px 0 rgba(255, 255, 255, 0.7), inset -3px -3px 0 rgba(0, 0, 0, 0.45), inset 3px 3px 0 rgba(255, 255, 255, 0.28);
+  transition: none;
+}
+.tiles-classic .tb-tile.tb-pressed {
+  transform: none;
+  box-shadow: inset 1px 1px 0 #050505, inset -1px -1px 0 rgba(255, 255, 255, 0.7), inset 3px 3px 0 rgba(0, 0, 0, 0.45), inset -3px -3px 0 rgba(255, 255, 255, 0.28);
+}
+.tiles-classic .tb-tile.tb-pressed .tb-tile-inner { transform: translate(1px, 1px); }
+.tiles-classic .tb-tile-label { text-shadow: none; }
+
+/* CRT: a small old monitor: scanlines, a dark curved edge and text glowing like phosphor. A press brightens the screen. */
+.tiles-crt .tb-tile {
+  background-image: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.24) 0, rgba(0, 0, 0, 0.24) 1px, rgba(0, 0, 0, 0) 1px, rgba(0, 0, 0, 0) 3px), radial-gradient(ellipse at 50% 50%, rgba(var(--fg-rgb), 0.14), rgba(0, 0, 0, 0.5) 100%);
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.65), inset 0 0 18px rgba(0, 0, 0, 0.65), 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+.tiles-crt .tb-tile.tb-pressed {
+  transform: scale(0.98);
+  background-image: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0, rgba(0, 0, 0, 0.18) 1px, rgba(0, 0, 0, 0) 1px, rgba(0, 0, 0, 0) 3px), radial-gradient(ellipse at 50% 50%, rgba(var(--fg-rgb), 0.32), rgba(0, 0, 0, 0.35) 100%);
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.65), inset 0 0 12px rgba(0, 0, 0, 0.5), 0 0 12px rgba(var(--fg-rgb), 0.3);
+}
+.tiles-crt .tb-tile-label, .tiles-crt .tb-big { text-shadow: 0 0 5px rgba(var(--fg-rgb), 0.75); }
+
+/* These go in or switch over rather than light up. */
+.tiles-bordered .tb-tile.tb-pressed::before, .tiles-neon .tb-tile.tb-pressed::before, .tiles-pixel .tb-tile.tb-pressed::before,
+.tiles-classic .tb-tile.tb-pressed::before, .tiles-crt .tb-tile.tb-pressed::before { opacity: 0; }
 
 @media (prefers-reduced-motion: reduce) { .tb-tile, .tb-tile.tb-pressed, .tb-tile::before { transition: none; } .tb-ripple, .tb-led, .tb-open { animation: none; } .tb-ripple { display: none; } }
 

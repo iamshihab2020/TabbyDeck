@@ -1,4 +1,4 @@
-import type { ParamField } from '@tabbydeck/shared';
+import { PANEL_STYLE, type ParamField } from '@tabbydeck/shared';
 import type { ActionRegistry } from '../engine/registry.ts';
 import type { Native, ProjectMode } from '../native/types.ts';
 
@@ -26,9 +26,10 @@ export function registerDisplay(registry: ActionRegistry, deps: { native: Native
     run: async p => { for (const s of await targets(p.screen)) await display.setScreenBrightness(s.id, Math.max(0, Math.min(100, s.brightness + Number(p.delta)))); },
   });
   registry.register({
-    id: 'display.brightnessPanel', name: 'Brightness for each screen', group: 'Display', description: 'Opens a panel on the tablet with a slider for every screen',
-    schema: {},
-    run: async () => {}, // the tablet opens the panel itself; its sliders set each screen
+    id: 'display.brightnessPanel', name: 'Brightness sliders or wheel', group: 'Display',
+    description: 'Opens a panel on the tablet: a slider for every screen, or a wheel to turn for all of them or one',
+    schema: { style: PANEL_STYLE },
+    run: async () => {}, // the tablet opens the panel itself; its sliders or wheel set the screens
   });
   registry.register({
     id: 'display.project', name: 'Screens (extend or duplicate)', group: 'Display', description: 'The same choices as Win+P, for two or more screens',

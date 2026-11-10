@@ -6,7 +6,8 @@ import type { Connection } from '../connection.ts';
 import { createPressTracker } from '../press.ts';
 import { canFullscreen, fromHomeScreen, isFullscreen, isIOS, toggleFullscreen } from '../fullscreen.ts';
 import { DIM_CHOICES } from '../idle.ts';
-import { BluetoothPanel, BrightnessPanel, VolumePanel } from './Brightness.tsx';
+import { BluetoothPanel, BrightnessPanel, OutputPanel, VolumePanel } from './Brightness.tsx';
+import { BrightnessWheelPanel, VolumeWheelPanel } from './Wheel.tsx';
 import { TrackpadPanel } from './Trackpad.tsx';
 import { Cat, catSize, type Mood } from './Cat.tsx';
 import { WeekCard } from './Week.tsx';
@@ -257,6 +258,10 @@ export function DeckScreen({ view, conn, flash, name, onRename, dimAfter, onDimA
         onClose={() => setPanel(null)} />}
       {panelKey?.panel === 'bluetooth' && <BluetoothPanel bt={panelKey.bluetooth} onPower={power => conn.send({ t: 'bluetooth', widgetId: panelKey.id, power })} onDevice={(device, connect) => conn.send({ t: 'bluetooth', widgetId: panelKey.id, device, connect })} onClose={() => setPanel(null)} />}
       {panelKey?.panel === 'trackpad' && <TrackpadPanel onSend={padSend} onClose={() => setPanel(null)} />}
+      {panelKey?.panel === 'volumeWheel' && <VolumeWheelPanel level={panelKey.level} muted={panelKey.muted} onSet={percent => conn.send({ t: 'volume', widgetId: panelKey.id, percent })}
+        onMute={mute => conn.send({ t: 'volume', widgetId: panelKey.id, mute })} onClose={() => setPanel(null)} />}
+      {panelKey?.panel === 'brightnessWheel' && <BrightnessWheelPanel screens={panelKey.screens} onSet={(screen, percent) => conn.send({ t: 'brightness', widgetId: panelKey.id, screen, percent })} onClose={() => setPanel(null)} />}
+      {panelKey?.panel === 'output' && <OutputPanel outputs={panelKey.outputs} onOutput={output => conn.send({ t: 'volume', widgetId: panelKey.id, output })} onClose={() => setPanel(null)} />}
       {sheet && <Sheet view={view} conn={conn} name={name} onRename={onRename} dimAfter={dimAfter} onDimAfter={onDimAfter} onWeek={() => { setSheet(false); onAskStats(); setWeek(true); }} onClose={() => setSheet(false)}
         sound={sound} onSound={onSound} alarm={alarm} onAlarm={onAlarm} onEdit={view.edit === false ? null : () => { setSheet(false); setPanel(null); setEditing(true); }} onNews={onNews && (() => { setSheet(false); onNews(); })} newsUnread={newsUnread} />}
       {editing1 && <KeyEditor w={editing1} aspect={(cell.w * editing1.w + shown.gap * (editing1.w - 1)) / (cell.h * editing1.h + shown.gap * (editing1.h - 1))} assetUrl={assetUrl}
