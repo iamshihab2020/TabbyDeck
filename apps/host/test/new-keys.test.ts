@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { WebSocket } from 'ws';
-import { DEFAULT_LOOK, ProfileFileSchema, type HostMsg, type Widget } from '@tabbydeck/shared';
+import { DEFAULT_LOOK, DeckViewSchema, ProfileFileSchema, TILE_STYLES, type HostMsg, type Widget } from '@tabbydeck/shared';
 import { TEMPLATES, templateProfileFile } from '@tabbydeck/shared/templates';
 import { fits, snugCols } from '@tabbydeck/shared/layout';
 import { createHost, type Host } from '../src/host.ts';
@@ -209,6 +209,14 @@ describe('key styles', () => {
     expect((await dispatchCommand('profile.update', { id: f.profile.id, patch: { tiles: 'glass' } }, { host, log: nullLogger(), onPausedChange: () => {} })).ok).toBe(true);
     expect(buildDeckView(host.store, f.profile.id, f.profile.rootFolderId).tiles).toBe('glass');
     expect((await dispatchCommand('profile.update', { id: f.profile.id, patch: { tiles: 'shiny' } }, { host, log: nullLogger(), onPausedChange: () => {} })).ok).toBe(false);
+  });
+  it('every key style can be chosen, and reaches the decks in a view they accept', async () => {
+    const f = host.store.profiles()[0];
+    for (const tiles of TILE_STYLES) {
+      expect((await dispatchCommand('profile.update', { id: f.profile.id, patch: { tiles } }, { host, log: nullLogger(), onPausedChange: () => {} })).ok).toBe(true);
+      const view = buildDeckView(host.store, f.profile.id, f.profile.rootFolderId);
+      expect(DeckViewSchema.safeParse(view).success ? view.tiles : `${tiles} not accepted by the deck`).toBe(tiles);
+    }
   });
 });
 

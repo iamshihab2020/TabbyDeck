@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { render } from 'preact-render-to-string';
-import { DEFAULT_LOOK, type DeckView } from '@tabbydeck/shared';
+import { DEFAULT_LOOK, TILE_STYLES, type DeckView } from '@tabbydeck/shared';
 import { tileStyle, Tile, Grid, Icon, ICON_NAMES, gridCellSize } from '../src/index.ts';
 
 const sprite = readFileSync(new URL('../src/icons/sprite.svg', import.meta.url), 'utf8');
@@ -56,6 +56,13 @@ describe('tokens.css', () => {
   it('defines the amber accent in dark and light', () => {
     expect(tokens).toContain('#f5a524');
     expect(tokens).toContain('#b86e00');
+  });
+  it('offers fourteen key styles, the six first ones unmoved', () => {
+    expect(TILE_STYLES).toEqual(['keycap', 'sunken', 'soft', 'glass', 'pad', 'outline', 'bordered', 'flat', 'neon', 'brushed', 'arcade', 'pixel', 'classic', 'crt']);
+  });
+  it('draws every key style other than keycap (the plain tile) its own way, at rest and pressed', () => {
+    const missing = TILE_STYLES.filter(s => s !== 'keycap').flatMap(s => [`.tiles-${s} .tb-tile {`, `.tiles-${s} .tb-tile.tb-pressed {`]).filter(rule => !tokens.includes(rule));
+    expect(missing).toEqual([]);
   });
 });
 

@@ -114,7 +114,7 @@ function WindowField({ label, value, onChange, required }: { label: string; valu
 /** "Speakers (Realtek(R) Audio)" -> "Speakers". */
 const shortOutput = (name: string) => name.replace(/\s+\(.*\)\s*$/, '') || name;
 
-/** The sound outputs connected now, or "the next one" (empty) to go round them all. A saved output that is unplugged stays listed. */
+/** The sound outputs connected now, or none (empty) for a key that opens the list of outputs on the phone. A saved output that is unplugged stays listed. */
 function OutputField({ label, value, onChange }: { label: string; value: string; onChange(v: string): void }) {
   const api = useApi();
   const [outputs, setOutputs] = useState<AudioOutput[] | null>(null);
@@ -122,7 +122,7 @@ function OutputField({ label, value, onChange }: { label: string; value: string;
   const known = !outputs || !value || outputs.some(o => o.id === value);
   return (
     <select aria-label={label} class="input" value={value} onChange={e => onChange((e.target as HTMLSelectElement).value)}>
-      <option value="">The next output, each press</option>
+      <option value="">Choose on the phone each time</option>
       {(outputs ?? []).map(o => <option key={o.id} value={o.id}>{shortOutput(o.name)}</option>)}
       {!known && <option value={value}>An output that is not connected</option>}
     </select>

@@ -15,5 +15,8 @@
     "@tabbydeck/ui": "*",
     "preact": "11.0.1"
   },
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "preact-render-to-string": "6.8.1"
+  }
 }
