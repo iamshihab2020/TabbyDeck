@@ -7,6 +7,16 @@ import { tileStyle, Tile, Grid, Icon, ICON_NAMES, gridCellSize } from '../src/in
 const sprite = readFileSync(new URL('../src/icons/sprite.svg', import.meta.url), 'utf8');
 const tokens = readFileSync(new URL('../src/tokens.css', import.meta.url), 'utf8');
 
+describe('the glow colour (Neon)', () => {
+  it('is the brighter of the key\'s two colours, so a light key with dark text still glows', () => {
+    expect(tileStyle({ ...DEFAULT_LOOK, bg: '#f5a524', fg: '#2a1a00' }, 96).style['--glow-rgb']).toBe('245, 165, 36');
+    expect(tileStyle({ ...DEFAULT_LOOK, bg: '#25221f', fg: '#fcd34d' }, 96).style['--glow-rgb']).toBe('252, 211, 77');
+  });
+  it('is the one colour there is when the other is not a hex colour', () => {
+    expect(tileStyle({ ...DEFAULT_LOOK, bg: 'linear-gradient(red, blue)', fg: '#ffffff' }, 96).style['--glow-rgb']).toBe('255, 255, 255');
+  });
+});
+
 describe('tileStyle', () => {
   it('maps radius 16 to 16px border radius', () => {
     expect(tileStyle(DEFAULT_LOOK, 96).style.borderRadius).toBe('16px');

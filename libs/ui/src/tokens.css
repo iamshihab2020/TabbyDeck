@@ -143,7 +143,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* ---- key styles (a profile picks one; keycap above is the default) ----
    Each is a real kind of button. --key-rgb and --fg-rgb are the key's own colours as "r, g, b", for see-through
    shades. Shadows stay inside the gap between keys (16 px by default). No background blur: the floor is Chrome 60. */
-.tb-tile { --key-rgb: 37, 34, 31; --fg-rgb: 239, 234, 227; }
+.tb-tile { --key-rgb: 37, 34, 31; --fg-rgb: 239, 234, 227; --glow-rgb: 239, 234, 227; }
 
 /* Sunken: set into the panel, like a dashboard switch. The well's top edge shades it; a press goes deeper. */
 .tiles-sunken .tb-tile {
@@ -216,18 +216,20 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .tiles-flat .tb-tile.tb-pressed { transform: scale(0.96); box-shadow: none; }
 .tiles-flat .tb-tile-label, .tiles-flat .tb-value { text-shadow: none; }
 
-/* Neon: a dark key outlined in glowing tube light in its own colour; the icon and label glow too. A press burns brighter. */
+/* Neon: a dark key outlined in glowing tube light, the icon and label glowing too, all in the brighter of the key's two
+   colours (--glow-rgb), so a light key with dark text glows in its own colour. A press burns brighter. */
 .tiles-neon .tb-tile {
-  background-color: rgba(var(--key-rgb), 0.16) !important;
-  box-shadow: inset 0 0 0 1.5px rgba(var(--fg-rgb), 0.9), inset 0 0 14px rgba(var(--fg-rgb), 0.3), 0 0 10px rgba(var(--fg-rgb), 0.4);
+  background-color: rgba(var(--key-rgb), 0.16) !important; color: rgb(var(--glow-rgb)) !important;
+  box-shadow: inset 0 0 0 1.5px rgba(var(--glow-rgb), 0.9), inset 0 0 14px rgba(var(--glow-rgb), 0.3), 0 0 10px rgba(var(--glow-rgb), 0.4);
 }
 .tiles-neon .tb-tile.tb-pressed {
   transform: scale(0.97);
-  background-color: rgba(var(--fg-rgb), 0.16) !important;
-  box-shadow: inset 0 0 0 2px rgba(var(--fg-rgb), 1), inset 0 0 22px rgba(var(--fg-rgb), 0.55), 0 0 20px 2px rgba(var(--fg-rgb), 0.65);
+  background-color: rgba(var(--glow-rgb), 0.16) !important;
+  box-shadow: inset 0 0 0 2px rgba(var(--glow-rgb), 1), inset 0 0 22px rgba(var(--glow-rgb), 0.55), 0 0 20px 2px rgba(var(--glow-rgb), 0.65);
 }
-.tiles-neon .tb-tile-icon, .tiles-crt .tb-tile-icon { filter: drop-shadow(0 0 4px rgba(var(--fg-rgb), 0.8)); }
-.tiles-neon .tb-tile-label, .tiles-neon .tb-big { text-shadow: 0 0 6px rgba(var(--fg-rgb), 0.85); }
+.tiles-neon .tb-tile-icon { filter: drop-shadow(0 0 4px rgba(var(--glow-rgb), 0.8)); }
+.tiles-crt .tb-tile-icon { filter: drop-shadow(0 0 4px rgba(var(--fg-rgb), 0.8)); }
+.tiles-neon .tb-tile-label, .tiles-neon .tb-big { text-shadow: 0 0 6px rgba(var(--glow-rgb), 0.85); }
 
 /* Brushed metal: anodised aluminium in the key's colour, with a fine brushed grain, a sheen across it and bevelled edges. */
 .tiles-brushed .tb-tile {

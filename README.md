@@ -18,7 +18,7 @@ TabbyDeck puts a grid of buttons on any phone or tablet on your Wi-Fi: Android, 
 
 ## Download and start
 
-1. Download **TabbyDeck-0.4.0-windows-x64.zip** from the [latest release](https://github.com/iamshihab2020/TabbyDeck/releases/latest).
+1. Download **TabbyDeck-0.5.0-windows-x64.zip** from the [latest release](https://github.com/iamshihab2020/TabbyDeck/releases/latest).
 2. Unzip it anywhere, for example `Documents\TabbyDeck`.
 3. Double-click `tabbydeck.exe`. When Windows asks whether TabbyDeck may use the network, allow **Private networks**.
 4. On your phone or tablet, scan the code TabbyDeck shows, or type the address into Chrome (Android) or Safari (iPhone and iPad).
@@ -59,12 +59,13 @@ The icon remembers your PC's address. If your router gives the PC a new address,
 
 - **Ready-made decks:** start with a Developer, Office, Streamer or Music deck, from the first-run guide or **New profile** in the editor. Each one opens the apps found on your PC, with their icons, and is sized to fill its rows. Keys for apps you don't have stay hidden until you install them.
 - **Swipe between decks:** swipe the keys left or right on the phone to go to the next profile. Put your profiles in any order by dragging them in the editor.
-- **Customize:** pick how the keys look: Keycap, Sunken, Soft, Glass, Pad or Outline, for all your profiles or a different one for each. Name the cat that lives under the keys, or turn it off.
+- **Customize:** pick how the keys look from fourteen styles, among them Keycap, Sunken, Bordered sunken, Glass, Neon, Brushed metal, Arcade, Pixel, Classic and CRT, for all your profiles or a different one for each. Name the cat that lives under the keys, or turn it off.
 - **Claude Code:** the Developer deck starts Claude in your repo from VS Code and has keys for compact, usage, model, effort, mode, plan, pasting a screenshot, stop and yes.
 - **Trackpad and keyboard:** a key turns the phone into a touchpad for the PC: point, tap to click, two fingers to scroll or right-click, and a box that types on the PC. Handy from the couch.
 - **Sound and screen:** play, pause, next and previous; a volume slider with mute; mic mute; a brightness slider for each screen, including external monitors; night light.
+- **A knob to turn:** set a Volume or Brightness key to Wheel, and it opens a knob in place of the sliders, with a ring of lights for the level. Turn it like a real one.
 - **Now playing:** a key shows the song or video that is playing, with its cover. Tap to play or pause, hold to skip.
-- **Volume mixer:** the Volume panel also has a slider and mute for each app (Spotify, Discord, a game), and lets you choose which speakers or headphones to play through. An Output key switches between them in one tap.
+- **Volume mixer:** the Volume panel also has a slider and mute for each app (Spotify, Discord, a game), and lets you choose which speakers or headphones to play through. An Output key opens a list of them to pick from; a key for one output switches to it in one tap.
 - **Decks that follow your apps:** give a profile its apps (in the editor, **Follow apps**), and your phone switches to it while one of them is in front, then back when you leave.
 - **Meetings:** mute, camera, raise hand and leave, in whichever call you are in: Microsoft Teams, Zoom, Google Meet, a Slack huddle or Discord. TabbyDeck finds the call by the app using your microphone. The Camera key lights while an app uses your camera.
 - **Do not disturb:** one key turns Windows notifications off and on, and lights while they are off.
