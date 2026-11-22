@@ -101,11 +101,17 @@ export class Clients extends EventEmitter<ClientsEvents> {
       } else this.goToFolder(c, m.folderId);
     } else if (m.t === 'brightness') {
       const w = this.store.widget(m.widgetId), f = this.store.profile(c.profileId);
-      if (!w || !f?.widgets.includes(w) || panelOf(w) !== 'brightness') return this.log.debug('clients', 'brightness from a deck without the panel', { widgetId: m.widgetId });
+      const panel = w && f?.widgets.includes(w) ? panelOf(w) : undefined;
+      if (panel !== 'brightness' && panel !== 'brightnessWheel') return this.log.debug('clients', 'brightness from a deck without the panel', { widgetId: m.widgetId });
       this.onBrightness(c, m.screen, m.percent);
     } else if (m.t === 'volume') {
       const w = this.store.widget(m.widgetId), f = this.store.profile(c.profileId);
-      if (!w || !f?.widgets.includes(w) || panelOf(w) !== 'volume') return this.log.debug('clients', 'volume from a deck without the panel', { widgetId: m.widgetId });
+      const panel = w && f?.widgets.includes(w) ? panelOf(w) : undefined;
+      // The Output key's list only chooses where the sound plays, and the Volume wheel only turns the PC's own volume
+      // and mute; an app's level and the output come from the volume panel alone.
+      if (panel === 'output' && m.output) return this.onVolume(c, { output: m.output });
+      if (panel === 'volumeWheel' && !m.app && !m.output) return this.onVolume(c, { percent: m.percent, mute: m.mute });
+      if (panel !== 'volume') return this.log.debug('clients', 'volume from a deck without the panel', { widgetId: m.widgetId });
       this.onVolume(c, m);
     } else if (m.t === 'bluetooth') {
       const w = this.store.widget(m.widgetId), f = this.store.profile(c.profileId);

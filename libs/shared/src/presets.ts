@@ -27,6 +27,7 @@ export const PRESETS: Preset[] = [
   { id: 'volume-down', group: 'Sound', label: 'Volume −', icon: 'speaker-low', bg: KEY, steps: [{ action: 'system.volumeStep', params: { delta: -5 } }] },
   { id: 'volume-up', group: 'Sound', label: 'Volume +', icon: 'speaker-high', bg: KEY, steps: [{ action: 'system.volumeStep', params: { delta: 5 } }] },
   { id: 'volume-panel', group: 'Sound', label: 'Volume', icon: 'speaker-high', bg: KEY, steps: [{ action: 'system.volumePanel', params: {} }] },
+  { id: 'volume-wheel', group: 'Sound', label: 'Volume wheel', icon: 'speaker-high', bg: KEY, fg: '#f5a524', steps: [{ action: 'system.volumePanel', params: { style: 'wheel' } }] },
   { id: 'sound-output', group: 'Sound', label: 'Output', icon: 'headphones', bg: KEY, steps: [{ action: 'audio.output', params: { output: '' } }] },
   { id: 'mic', group: 'Sound', label: 'Mic', icon: 'microphone-slash', bg: '#33302b', steps: [{ action: 'system.micMute', params: { mode: 'toggle' } }] },
 
@@ -38,6 +39,7 @@ export const PRESETS: Preset[] = [
 
   { id: 'brightness-down', group: 'Display', label: 'Brightness −', icon: 'sun-dim', bg: KEY, steps: [{ action: 'display.brightnessStep', params: { delta: -10 } }] },
   { id: 'brightness-panel', group: 'Display', label: 'Brightness', icon: 'monitor', bg: KEY, fg: '#fcd34d', steps: [{ action: 'display.brightnessPanel', params: {} }] },
+  { id: 'brightness-wheel', group: 'Display', label: 'Brightness wheel', icon: 'sun', bg: KEY, fg: '#fcd34d', steps: [{ action: 'display.brightnessPanel', params: { style: 'wheel' } }] },
   { id: 'screens-off', group: 'Display', label: 'Screen off', icon: 'eye-slash', bg: '#1a1f2e', fg: '#93c5fd', steps: [{ action: 'display.screensOff', params: { screen: 'all' } }], long: [{ action: 'display.screensOff', params: { screen: 'all' } }] },
   { id: 'brightness-up', group: 'Display', label: 'Brightness +', icon: 'sun', bg: KEY, fg: '#fcd34d', steps: [{ action: 'display.brightnessStep', params: { delta: 10 } }] },
   { id: 'energy-saver', group: 'Display', label: 'Power saver', icon: 'leaf', bg: '#16302b', fg: '#86efac', steps: [{ action: 'system.energySaver', params: { mode: 'toggle' } }] },

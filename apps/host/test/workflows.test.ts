@@ -134,17 +134,39 @@ describe('sound outputs and the mixer', () => {
     n.outputs = n.outputs.slice(0, 1);
     await expect(run('audio.output', {})).rejects.toThrow('only one sound output');
   });
-  it('an output key lights while its output plays; a next-output key shows the current one', async () => {
+  it('an output key lights while its output plays; the Output key shows the current one and has the list to choose from', async () => {
     const f = host.store.profiles()[0];
     const hp = host.store.createWidget(f.profile.rootFolderId, button('audio.output', { output: 'hp' }, 1));
-    const cycle = host.store.createWidget(f.profile.rootFolderId, button('audio.output', {}, 2));
+    const pick = host.store.createWidget(f.profile.rootFolderId, button('audio.output', {}, 2));
     const n = createFakeNative();
     const w = new StateWatcher({ store: host.store, native: n, clients: { patch: () => {}, count: () => 1 } as unknown as Clients });
     n.outputs[0].name = 'Speakers (Realtek(R) Audio)';
     await w.refresh('outputs');
     expect(w.liveOf(host.store.widget(hp.id)!)).toEqual({ active: false });
-    expect(w.liveOf(host.store.widget(cycle.id)!)).toEqual({ value: 'Speakers' });
+    expect(w.liveOf(host.store.widget(pick.id)!)).toEqual({ value: 'Speakers', outputs: n.outputs });
     expect(shortOutputName('FxSound Speakers (FxSound Audio Enhancer)')).toBe('FxSound Speakers');
+  });
+  it('the Output key opens the list of outputs on the phone, and plays through the one chosen there', async () => {
+    const f = host.store.profiles()[0];
+    host.store.createWidget(f.profile.rootFolderId, button('audio.output', { output: '' }, 1));
+    host.store.createWidget(f.profile.rootFolderId, button('audio.output', { output: 'hp' }, 2));
+    const { ws, deck, next } = await phone();
+    const lists = deck.widgets.filter(x => x.panel === 'output');
+    expect(lists).toHaveLength(1); // the key for one output switches at once, with no list
+    const key = lists[0];
+    let live: HostMsg | undefined;
+    while (!(live?.t === 'patch' && live.widgetId === key.id && live.outputs)) live = await next();
+    expect(live).toMatchObject({ outputs: [{ id: 'spk', isDefault: true }, { id: 'hp', isDefault: false }] });
+
+    // The list only chooses the output: a level or mute sent with its key is ignored.
+    ws.send(JSON.stringify({ t: 'volume', widgetId: key.id, percent: 10, mute: true }));
+    ws.send(JSON.stringify({ t: 'volume', widgetId: key.id, output: 'hp' }));
+    const n = native();
+    for (let i = 0; i < 100 && !n.outputs[1].isDefault; i++) await new Promise(r => setTimeout(r, 10));
+    expect(n.outputs.find(o => o.isDefault)?.id).toBe('hp');
+    expect(n.volume).toBe(50);
+    expect(n.mute).toBe(false);
+    ws.close();
   });
   it('the volume panel lists each app and the outputs, and sets one app or the output from the phone', async () => {
     const f = host.store.profiles()[0];
@@ -163,6 +185,52 @@ describe('sound outputs and the mixer', () => {
     expect(n.apps.find(a => a.id === 'spotify')).toMatchObject({ level: 30, muted: true });
     expect(n.volume).toBe(50); // the PC's own volume is untouched
     expect(n.outputs.find(o => o.isDefault)?.id).toBe('hp');
+    ws.close();
+  });
+});
+
+describe('the wheels', () => {
+  const settle = async (done: () => boolean) => { for (let i = 0; i < 100 && !done(); i++) await new Promise(r => setTimeout(r, 10)); };
+  const liveFor = async (next: () => Promise<HostMsg>, id: string, has: (m: Extract<HostMsg, { t: 'patch' }>) => boolean) => {
+    for (;;) { const m = await next(); if (m.t === 'patch' && m.widgetId === id && has(m)) return m; }
+  };
+
+  it('the Volume and Brightness keys offer Sliders or Wheel in the editor, and show sliders until a wheel is chosen', () => {
+    for (const id of ['system.volumePanel', 'display.brightnessPanel']) {
+      expect(host.registry.get(id)!.schema.style).toMatchObject({ type: 'enum', options: ['slider', 'wheel'], labels: ['Sliders', 'Wheel'], default: 'slider' });
+    }
+    expect(host.registry.get('system.volumeWheel')).toBeUndefined(); // a setting of the keys, not keys of their own
+    expect(host.registry.get('display.brightnessWheel')).toBeUndefined();
+  });
+  it('the Volume wheel shows the level, and turns the PC volume and mute but never an app or the output', async () => {
+    const f = host.store.profiles()[0];
+    host.store.createWidget(f.profile.rootFolderId, button('system.volumePanel', { style: 'wheel' }, 1));
+    const { ws, deck, next } = await phone();
+    const key = deck.widgets.find(x => x.panel === 'volumeWheel')!;
+    expect(await liveFor(next, key.id, m => m.level !== undefined)).toMatchObject({ level: 50, muted: false, value: '50%' });
+
+    ws.send(JSON.stringify({ t: 'volume', widgetId: key.id, app: 'spotify', percent: 5 }));
+    ws.send(JSON.stringify({ t: 'volume', widgetId: key.id, output: 'hp' }));
+    ws.send(JSON.stringify({ t: 'volume', widgetId: key.id, percent: 30 }));
+    ws.send(JSON.stringify({ t: 'volume', widgetId: key.id, mute: true }));
+    const n = native();
+    await settle(() => n.volume === 30 && n.mute);
+    expect([n.volume, n.mute]).toEqual([30, true]);
+    expect(n.calls.filter(c => c.method === 'setVolume').map(c => c.args[0])).toEqual([30]);
+    expect(n.calls.some(c => c.method === 'setApp' || c.method === 'setOutput')).toBe(false);
+    ws.close();
+  });
+  it('the Brightness wheel lists the screens, and sets the one it turns', async () => {
+    const f = host.store.profiles()[0];
+    host.store.createWidget(f.profile.rootFolderId, button('display.brightnessPanel', { style: 'wheel' }, 1));
+    const { ws, deck, next } = await phone();
+    const key = deck.widgets.find(x => x.panel === 'brightnessWheel')!;
+    expect(await liveFor(next, key.id, m => !!m.screens)).toMatchObject({ screens: [{ id: 'LAP1', brightness: 60 }, { id: 'MON1', brightness: 80 }] });
+
+    ws.send(JSON.stringify({ t: 'brightness', widgetId: key.id, screen: 'MON1', percent: 35 }));
+    const n = native();
+    await settle(() => n.screens[1].brightness === 35);
+    expect(n.screens.map(s => s.brightness)).toEqual([60, 35]);
     ws.close();
   });
 });

@@ -18,11 +18,30 @@ describe('keys that ask first', () => {
     expect(statefulAction(btn('display.screensOff', { screen: 'all' }))).toBe('display.screensOff');
     expect(statefulAction(btn('display.screensOff', { screen: 'MON1' }))).toBeUndefined();
   });
-  it('in the starter deck exactly Screen off, Sleep, Lock and Shut down ask, the toggles, Output and Screen off show state, and Volume, Bluetooth, Brightness and Trackpad open panels', () => {
+  it('in the starter deck exactly Screen off, Sleep, Lock and Shut down ask, the toggles, Output and Screen off show state, and Volume, Output, Bluetooth, Brightness and Trackpad open panels', () => {
     const ws = starterProfileFile().widgets;
     expect(ws.filter(w => confirmText(w)).map(w => w.look.label)).toEqual(['Screen off', 'Sleep', 'Lock', 'Shut down']);
     expect(ws.filter(w => statefulAction(w)).map(w => w.look.label)).toEqual(['Play', 'Mute', 'Mic', 'Output', 'Bluetooth', 'Do not disturb', 'Night light', 'Screen off']);
-    expect(ws.filter(w => panelOf(w)).map(w => w.look.label)).toEqual(['Volume', 'Bluetooth', 'Brightness', 'Trackpad']);
+    expect(ws.filter(w => panelOf(w)).map(w => w.look.label)).toEqual(['Volume', 'Output', 'Bluetooth', 'Brightness', 'Trackpad']);
+  });
+});
+
+describe('the wheels', () => {
+  it('a Volume or Brightness key set to show a wheel opens the wheel; set to sliders, or never set, it opens the sliders', () => {
+    expect(panelOf(btn('system.volumePanel', { style: 'wheel' }))).toBe('volumeWheel');
+    expect(panelOf(btn('display.brightnessPanel', { style: 'wheel' }))).toBe('brightnessWheel');
+    expect(panelOf(btn('system.volumePanel', { style: 'slider' }))).toBe('volume');
+    expect(panelOf(btn('system.volumePanel'))).toBe('volume');
+    expect(panelOf(btn('display.brightnessPanel'))).toBe('brightness');
+    expect(panelOf(btn('system.bluetoothPanel', { style: 'wheel' }))).toBe('bluetooth');
+  });
+});
+
+describe('the Output key', () => {
+  it('with no output chosen opens the list of outputs; one for a chosen output switches at once', () => {
+    expect(panelOf(btn('audio.output', { output: '' }))).toBe('output');
+    expect(panelOf(btn('audio.output'))).toBe('output');
+    expect(panelOf(btn('audio.output', { output: 'hp' }))).toBeUndefined();
   });
 });
 

@@ -171,6 +171,26 @@ input { -webkit-user-select: text; user-select: text; }
 .bt-text .bright-name { display: block; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bt-state { display: block; margin-top: 2px; font-size: var(--fs-2); }
 .bt-row .btn { flex: none; }
+
+/* Output list: one row per sound output, a whole row to tap; the one playing has the accent and a check. */
+.out-row { width: 100%; border: 1px solid transparent; font: inherit; text-align: left; transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease); }
+.out-row:active { transform: scale(0.98); }
+.out-row.on { background: var(--accent-soft); border-color: var(--accent); }
+.out-row.on > svg { color: var(--accent); }
+.out-check { flex: none; }
+
+/* Wheel: a knob drawn in SVG (Chrome 60 has no conic-gradient), a ring of lights for the level, the number below. */
+.wheel { width: 260px; max-width: 100%; margin: 6px auto 0; }
+.wheel-dial { display: block; width: 100%; height: auto; touch-action: none; -webkit-user-select: none; user-select: none; outline: none; cursor: grab; }
+.wheel-dial:focus-visible .wheel-led { stroke: var(--accent); stroke-width: 1; }
+.wheel-led { fill: var(--surface-3); transition: fill 120ms var(--ease); }
+.wheel-led.lit { fill: var(--accent); }
+.wheel-dial.muted .wheel-led.lit { fill: var(--muted); }
+.wheel-ridges { fill: none; stroke: #fff; stroke-opacity: 0.09; stroke-width: 1.6; }
+.wheel-read { margin-top: 2px; text-align: center; }
+.wheel-read b { display: block; font-size: 44px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; color: var(--text); }
+.wheel-read span { display: block; margin-top: 4px; font-size: var(--fs-3); color: var(--muted); }
+.wheel-chips { justify-content: center; margin-top: 6px; }
 @media (prefers-reduced-motion: reduce) { .bt-knob, .bt-knob::after { transition: none; } }
 
 

@@ -148,8 +148,8 @@ clock(); setInterval(clock, 15000);
 /* ---------- Features: the big key becomes each one ---------- */
 const FEATURES = [
   ['play', 'Play', '#f5a524', '#2a1a00', 'Music and video', 'Play, pause and skip in any app. A Now playing key shows the song with its cover: tap to pause, hold to skip.'],
-  ['speaker-high', 'Volume', '#25221f', '#f1e9dd', 'A volume mixer in your hand', 'A slider for the whole PC and one for each app with sound, like Spotify, Discord or a game. Pick your speakers or headphones, or switch in one tap.'],
-  ['monitor', 'Brightness', '#25221f', '#fcd34d', 'Every screen, even external monitors', 'A brightness slider for each screen, night light, and a Screen off key that darkens the screens while long jobs keep running.'],
+  ['speaker-high', 'Volume', '#25221f', '#f1e9dd', 'A volume mixer in your hand', 'A slider for the whole PC and one for each app with sound, like Spotify, Discord or a game, or a knob to turn. An Output key lists your speakers and headphones to pick from.'],
+  ['monitor', 'Brightness', '#25221f', '#fcd34d', 'Every screen, even external monitors', 'A brightness slider or a knob for each screen, night light, and a Screen off key that darkens the screens while long jobs keep running.'],
   ['microphone-slash', 'Mute', '#33302b', '#f1e9dd', 'Mute in whichever call you are in', 'Mute, camera, raise hand and leave in Teams, Zoom, Google Meet, a Slack huddle or Discord. TabbyDeck finds the call by the app using your microphone.'],
   ['cursor-click', 'Trackpad', '#1e3a5f', '#bfdbfe', 'A trackpad and keyboard for the couch', 'One finger moves the pointer, a tap clicks, two fingers scroll. A box types on the PC.'],
   ['app-window', 'Open apps', '#14532d', '#bbf7d0', 'Your apps, with their real icons', 'Add any installed app from the list on your PC. One key can open a whole set, wait for them, then put each window in its place.'],
@@ -291,7 +291,7 @@ fetch('https://api.github.com/repos/iamshihab2020/TabbyDeck/releases/latest').th
   if (j && /^v?\d+\.\d+\.\d+$/.test(j.tag_name)) for (const el of document.querySelectorAll('[data-version]')) el.textContent = `Version ${j.tag_name.replace(/^v/, '')}`;
 }).catch(() => {});
 
-/* ---------- Key styles: switch, or watch it go through all six ---------- */
+/* ---------- Key styles: switch, or watch it go through all of them ---------- */
 const STYLES = [
   ['keycap', 'Keycap', 'A keyboard key: a lit top edge and a lip underneath. It goes down when you press it.'],
   ['sunken', 'Sunken', 'Set into the panel like a dashboard switch. A press goes deeper.'],
@@ -299,12 +299,25 @@ const STYLES = [
   ['glass', 'Glass', 'Tinted acrylic with a bright top edge, and colour that shows through.'],
   ['pad', 'Pad', 'A drum-machine pad with a strip of backlight in the key’s colour. A press lights it all.'],
   ['outline', 'Outline', 'Clear keys drawn with a line in the key’s colour, for busy decks.'],
+  ['bordered', 'Bordered sunken', 'Sunken keys set in a raised border in each key’s own colour. A press lights the border.'],
+  ['flat', 'Flat', 'Plain colour with no light or shadow, like icons on a phone’s home screen.'],
+  ['neon', 'Neon', 'Dark keys outlined in glowing tube light in each key’s own colour.'],
+  ['brushed', 'Brushed metal', 'Anodised aluminium in the key’s colour, with a fine brushed grain and a sheen.'],
+  ['arcade', 'Arcade', 'Glossy domed buttons in a dark ring, like on an arcade cabinet.'],
+  ['pixel', 'Pixel', 'Square 8-bit keys with a hard stepped shadow, from old video games.'],
+  ['classic', 'Classic', 'Bevelled buttons from the Windows of the 1990s. A press flips the bevel.'],
+  ['crt', 'CRT', 'An old monitor’s scanlines, with text that glows like phosphor.'],
 ];
 const ST_KEYS = [KEYS[0], KEYS[4], KEYS[5], KEYS[7], KEYS[8], KEYS[9], KEYS[2], KEYS[11]];
 const rgb = hex => { const h = (hex || '#25221f').slice(1); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)).join(', '); };
 const stDeck = $('#stdeck'), stPick = $('#stpick');
 stDeck.innerHTML = ST_KEYS.map((k, i) => keyHtml(k, i, 'div')).join('');
-[...stDeck.children].forEach((el, i) => { el.style.setProperty('--key-rgb', rgb(ST_KEYS[i].bg)); el.style.setProperty('--fg-rgb', rgb(ST_KEYS[i].fg || '#f1e9dd')); });
+// Neon glows in the brighter of a key's two colours, as in the app, so a light key with dark text still glows.
+const lightness = c => { const [r, g, b] = c.split(', ').map(Number); return .299 * r + .587 * g + .114 * b; };
+[...stDeck.children].forEach((el, i) => {
+  const k = rgb(ST_KEYS[i].bg), f = rgb(ST_KEYS[i].fg || '#f1e9dd');
+  el.style.setProperty('--key-rgb', k); el.style.setProperty('--fg-rgb', f); el.style.setProperty('--glow-rgb', lightness(k) > lightness(f) ? k : f);
+});
 stPick.innerHTML = STYLES.map(([id, name], i) => `<button type="button" role="radio" aria-checked="${i === 0}" data-s="${id}">${name}</button>`).join('');
 let stAt = 0, stAuto = !calm, stTimer, stOn = false;
 function pickStyle(i) {

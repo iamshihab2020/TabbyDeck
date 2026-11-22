@@ -1,10 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import type { ComponentChildren } from 'preact';
 import type { AppSound, AudioOutput, Bluetooth, Screen } from '@tabbydeck/shared';
 import { Icon } from '@tabbydeck/ui';
-
-const SEND_EVERY_MS = 120; // while a slider is dragged
-const HOLD_MS = 1500;      // after a touch, the slider keeps the finger's value over the PC's (slower) report
+import { useLevels } from '../levels.ts';
 
 interface Row {
   id: string; name: string; icon: string; level: number;
@@ -21,24 +19,10 @@ function LevelPanel({ title, icon, rows, step, empty, onSet, onClose, children, 
   /** Shown under the rows, above the buttons. */
   extra?: ComponentChildren;
 }) {
-  const [mine, setMine] = useState<Record<string, { v: number; at: number }>>({});
-  const timers = useRef<Record<string, { last: number; t?: ReturnType<typeof setTimeout> }>>({});
-  useEffect(() => () => { for (const k in timers.current) clearTimeout(timers.current[k].t); }, []);
-  // Re-render once the hold runs out so the PC's value shows again.
-  const [, tick] = useState(0);
-  useEffect(() => { const t = setInterval(() => tick(n => n + 1), 500); return () => clearInterval(t); }, []);
-
-  const set = (id: string, v: number, now = false) => {
-    v = Math.max(0, Math.min(100, Math.round(v)));
-    setMine(m => ({ ...m, [id]: { v, at: Date.now() } }));
-    const s = timers.current[id] ??= { last: 0 };
-    clearTimeout(s.t);
-    const wait = now ? 0 : SEND_EVERY_MS - (Date.now() - s.last);
-    if (wait <= 0) { s.last = Date.now(); onSet(id, v); } else s.t = setTimeout(() => { s.last = Date.now(); onSet(id, v); }, wait);
-  };
+  const { set, level: held } = useLevels(onSet);
   // The tap that opened the panel ends over the backdrop; ignore backdrop taps for a moment so it cannot close itself.
   const opened = useMemo(() => Date.now(), []);
-  const level = (r: Row) => { const m = mine[r.id]; return m && Date.now() - m.at < HOLD_MS ? m.v : r.level; };
+  const level = (r: Row) => held(r.id, r.level);
 
   return (
     <div class="sheet-backdrop" onClick={() => { if (Date.now() - opened > 500) onClose(); }}>
@@ -123,6 +107,37 @@ export function VolumePanel({ level, muted, apps, outputs, onSet, onMute, onApp,
         <Icon name={muted ? 'speaker-high' : 'speaker-x'} size={18} />{muted ? 'Unmute' : 'Mute'}
       </button>
     </LevelPanel>
+  );
+}
+
+/** "Speakers (Realtek(R) Audio)" -> "Realtek(R) Audio": the driver, shown small under the output's name. */
+const driver = (name: string) => /\s+\((.*)\)\s*$/.exec(name)?.[1] ?? '';
+const HEADPHONES = /head(phone|set)|ear(phone|bud)|buds|airpods|hands-free/i;
+
+/** The Output key's list: every sound output, the one playing checked. Choosing one plays through it and closes the list. */
+export function OutputPanel({ outputs, onOutput, onClose }: { outputs?: AudioOutput[]; onOutput(id: string): void; onClose(): void }) {
+  const opened = useMemo(() => Date.now(), []);
+  return (
+    <div class="sheet-backdrop" onClick={() => { if (Date.now() - opened > 500) onClose(); }}>
+      <section class="sheet bright" role="dialog" aria-label="Sound output" onClick={e => e.stopPropagation()}>
+        <div class="sheet-handle" />
+        <h2 class="bright-title"><Icon name="headphones" size={20} />Sound output</h2>
+        {!outputs ? <p class="hint">Reading from the PC…</p>
+          : !outputs.length ? <p class="hint">No sound output is connected.</p>
+          : <div role="radiogroup" aria-label="Sound output">
+            {outputs.map(o => (
+              <button key={o.id} type="button" role="radio" aria-checked={o.isDefault} class={o.isDefault ? 'bright-row bt-row out-row on' : 'bright-row bt-row out-row'}
+                onClick={() => { if (!o.isDefault) onOutput(o.id); onClose(); }}>
+                <Icon name={HEADPHONES.test(o.name) ? 'headphones' : 'speaker-high'} size={20} />
+                <span class="bt-text"><span class="bright-name">{short(o.name)}</span>{driver(o.name) && <span class="bt-state">{driver(o.name)}</span>}</span>
+                {o.isDefault && <Icon name="check" size={20} class="out-check" />}
+              </button>
+            ))}
+          </div>}
+        {outputs?.length === 1 && <p class="hint">Connect headphones or speakers to choose between them.</p>}
+        <div class="sheet-row"><button type="button" class="btn primary" onClick={onClose}>Done</button></div>
+      </section>
+    </div>
   );
 }
 

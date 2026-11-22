@@ -1,4 +1,5 @@
 import type { Look, Widget } from './model.ts';
+import type { ParamField } from './catalogue.ts';
 
 /**
  * Actions whose result is a state the PC keeps (muted, night light on). A button whose first Press step is one of
@@ -70,10 +71,22 @@ export function levelView(dir: number, levels: number[]): { value: string; disab
   return { value: lo === hi ? `${lo}%` : `${lo}–${hi}%`, disabled: (dir > 0 && min >= 100) || (dir < 0 && max <= 0) };
 }
 
-export type Panel = 'brightness' | 'volume' | 'bluetooth' | 'trackpad';
+export type Panel = 'brightness' | 'volume' | 'bluetooth' | 'trackpad' | 'output' | 'volumeWheel' | 'brightnessWheel';
 const PANELS: Record<string, Panel> = { 'display.brightnessPanel': 'brightness', 'system.volumePanel': 'volume', 'system.bluetoothPanel': 'bluetooth', 'mouse.trackpad': 'trackpad' };
+const WHEELS: Partial<Record<Panel, Panel>> = { volume: 'volumeWheel', brightness: 'brightnessWheel' };
 
-/** Buttons that open a panel on the tablet instead of acting at once: brightness for each screen, the volume, Bluetooth, or the trackpad. */
+/** The Volume and Brightness keys' setting: their panel has sliders, or one wheel to turn. */
+export const PANEL_STYLE: ParamField = { type: 'enum', title: 'On the phone', options: ['slider', 'wheel'], labels: ['Sliders', 'Wheel'], default: 'slider' };
+
+/**
+ * Buttons that open a panel on the tablet instead of acting at once: brightness for each screen, the volume, Bluetooth,
+ * the trackpad, or the list of sound outputs (an Output key with no output of its own; one with an output switches to it).
+ * A Volume or Brightness key set to Wheel opens a wheel to turn in place of the sliders.
+ */
 export function panelOf(w: Pick<Widget, 'config'>): Panel | undefined {
-  return w.config.kind === 'button' ? PANELS[w.config.triggers.press?.[0]?.action ?? ''] : undefined;
+  if (w.config.kind !== 'button') return undefined;
+  const first = w.config.triggers.press?.[0];
+  if (first?.action === 'audio.output') return first.params.output ? undefined : 'output';
+  const p = PANELS[first?.action ?? ''];
+  return p && first?.params.style === 'wheel' ? WHEELS[p] ?? p : p;
 }

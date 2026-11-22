@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { LookSchema, TriggerKindSchema, type Device, type Look, type ProfileFile, type Settings, type TriggerKind } from './model.ts';
+import { LookSchema, TILE_STYLES, TriggerKindSchema, type Device, type Look, type ProfileFile, type Settings, type TriggerKind } from './model.ts';
 import type { ActionDefPublic } from './catalogue.ts';
 import { BADGE_IDS } from './badges.ts';
 
@@ -41,7 +41,10 @@ export const ClientMsgSchema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('stats') }),
   /** From the brightness panel: set one screen. widgetId is the panel's key, so only decks that have one can do this. */
   z.object({ t: z.literal('brightness'), widgetId: z.string(), screen: z.string().max(64), percent: z.number().min(0).max(100) }),
-  /** From the volume panel: set the volume, or mute. widgetId is the panel's key, as for brightness. */
+  /**
+   * From the volume panel: set the volume, or mute. widgetId is the panel's key, as for brightness. The Output key's
+   * list sends this too, with output alone; the host takes only the output from that key.
+   */
   z.object({
     t: z.literal('volume'), widgetId: z.string(), percent: z.number().min(0).max(100).optional(), mute: z.boolean().optional(),
     /** The level and mute are for this app only (an id from the panel's apps), not the whole PC. */
@@ -112,8 +115,11 @@ export const WidgetViewSchema = z.object({
   repeat: z.boolean().optional(),
   /** The key has its own Long press steps: holding does only those, and a press goes on release. */
   hold: z.boolean().optional(),
-  /** The key opens a panel on the tablet; for brightness, the screens it lists; for volume, the level and mute. */
-  panel: z.enum(['brightness', 'volume', 'bluetooth', 'trackpad']).optional(),
+  /**
+   * The key opens a panel on the tablet; for brightness, the screens it lists; for volume, the level and mute; for
+   * output, the outputs to choose from. The wheels show the same state as brightness and volume, with a dial to turn.
+   */
+  panel: z.enum(['brightness', 'volume', 'bluetooth', 'trackpad', 'output', 'volumeWheel', 'brightnessWheel']).optional(),
   /** Large text in place of the icon: a level (CPU 23%), the time, a timer's countdown. */
   big: z.string().optional(),
   bluetooth: BluetoothSchema.optional(),
@@ -140,7 +146,7 @@ export const DeckViewSchema = z.object({
   bg: z.string(),
   bgImage: z.string().optional(),
   /** How the keys are drawn (keycap when missing). */
-  tiles: z.enum(['keycap', 'sunken', 'soft', 'glass', 'pad', 'outline']).optional(),
+  tiles: z.enum(TILE_STYLES).optional(),
   /** The cat under the keys, as set on the PC. */
   cat: z.object({ on: z.boolean(), name: z.string() }).optional(),
   /** Snow and pumpkins on the keys in their season; off when the PC turned them off. */

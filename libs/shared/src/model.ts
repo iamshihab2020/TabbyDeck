@@ -29,7 +29,7 @@ export const LookSchema = z.object({
 export type Look = z.infer<typeof LookSchema>;
 
 /** How the keys are drawn. Keycap is the default; each is named after a kind of real button. */
-export const TILE_STYLES = ['keycap', 'sunken', 'soft', 'glass', 'pad', 'outline'] as const;
+export const TILE_STYLES = ['keycap', 'sunken', 'soft', 'glass', 'pad', 'outline', 'bordered', 'flat', 'neon', 'brushed', 'arcade', 'pixel', 'classic', 'crt'] as const;
 export type TileStyle = (typeof TILE_STYLES)[number];
 
 export const ProfileSchema = z.object({

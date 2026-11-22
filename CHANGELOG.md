@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.0 (2026-11-10)
+
+### On the phone
+- Volume and brightness knob: a Volume or Brightness key can open a knob in place of the sliders. Turn it like a real one; it follows how far your finger goes, so touching the far side never jumps the level. A ring of lights round it and the number under it show the level. The Brightness knob turns every screen at once, or the one you pick above it. Choose Wheel for the key in the editor, or add a Volume wheel or Brightness wheel key.
+- Output list: the Output key opens a list of the speakers and headphones on the PC, with the one playing ticked. Tap another to play through it. A key set to one output still switches in one tap.
+
+### Key styles
+- Eight new key styles: Bordered sunken, Flat, Neon, Brushed metal, Arcade, Pixel, Classic and CRT, for fourteen in all. Pick one from Keys at the top of the deck in the editor, or for every profile on the Customize page. Your profiles keep the style they have.
+
+### Editor
+- Volume and Brightness keys: On the phone chooses Sliders or Wheel. Sliders stay until you change it.
+- Switch sound output: left empty, the key now opens the list on the phone, in place of going to the next output each press.
+
 ## 0.4.0 (2026-10-31)
 
 ### On the phone

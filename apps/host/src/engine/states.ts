@@ -14,8 +14,9 @@ export interface Live {
   look?: Partial<Look>;
 }
 
-// The state each panel shows: the screens for brightness, level and mute for volume.
-const PANEL_STATE: Record<string, string> = { brightness: 'screens', volume: 'sound', bluetooth: 'bluetoothPanel' };
+// The state each panel shows: the screens for brightness, level and mute for volume, the outputs for the Output key.
+// The wheels turn the same levels as the sliders, so they show the same states.
+const PANEL_STATE: Record<string, string> = { brightness: 'screens', volume: 'sound', bluetooth: 'bluetoothPanel', output: 'outputs', brightnessWheel: 'screens', volumeWheel: 'sound' };
 
 // Keys whose first step reads a richer state than on or off.
 const LIVE_STATE: Record<string, string> = { 'media.nowPlaying': 'nowPlaying', 'audio.output': 'outputs', 'system.launch': 'windows', 'system.focus': 'windows' };
@@ -133,7 +134,8 @@ ${t.artist}`;
     }
     if (v && typeof v === 'object' && 'outputs' in v && !('level' in v)) {
       const cur = v.outputs.find(o => o.isDefault), want = w.config.kind === 'button' ? String(w.config.triggers.press?.[0]?.params.output ?? '') : '';
-      return want ? { active: cur?.id === want } : { value: cur ? shortOutputName(cur.name) : '' };
+      // The Output key (no output of its own) shows the one playing, and carries the list its panel chooses from.
+      return want ? { active: cur?.id === want } : { value: cur ? shortOutputName(cur.name) : '', outputs: v.outputs };
     }
     if (v && typeof v === 'object' && 'devices' in v) {
       const on = v.devices.find(d => d.connected);

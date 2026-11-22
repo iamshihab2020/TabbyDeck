@@ -11,6 +11,14 @@ const ABOUT: Record<TileStyle, { name: string; text: string }> = {
   glass: { name: 'Glass', text: 'Tinted see-through acrylic with a bright edge and a glow behind the deck.' },
   pad: { name: 'Pad', text: 'Matte drum-machine pads with a strip of light that fills the key when pressed.' },
   outline: { name: 'Outline', text: 'Clear keys drawn with a thin line. Quiet, for decks with many keys.' },
+  bordered: { name: 'Bordered sunken', text: 'Sunken keys set in a raised border in each key\'s own colour; a press lights the border.' },
+  flat: { name: 'Flat', text: 'Plain colour with no light or shadow, like icons on a phone\'s home screen.' },
+  neon: { name: 'Neon', text: 'Dark keys outlined in glowing tube light in each key\'s own colour.' },
+  brushed: { name: 'Brushed metal', text: 'Anodised aluminium in the key\'s colour, with a fine brushed grain and a sheen.' },
+  arcade: { name: 'Arcade', text: 'Glossy domed buttons in a dark ring, like on an arcade cabinet.' },
+  pixel: { name: 'Pixel', text: 'Square 8-bit keys with a hard stepped shadow, from old video games.' },
+  classic: { name: 'Classic', text: 'Bevelled buttons from the Windows of the 1990s; a press flips the bevel.' },
+  crt: { name: 'CRT', text: 'An old monitor\'s scanlines, with text that glows like phosphor.' },
 };
 
 // Three keys from this profile (or stand-ins) so each style is judged on the deck's own colours.
